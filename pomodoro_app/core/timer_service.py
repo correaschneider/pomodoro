@@ -107,6 +107,10 @@ class TimerService:
             self._logger.info("Timer stopped")
         # Join thread outside of lock to avoid deadlocks
         self._join_thread_if_running(timeout=2.0)
+        with self._lock:
+            # Clear thread reference for idempotency and to allow restarts
+            if self._thread and not self._thread.is_alive():
+                self._thread = None
         self._emit("state", self.state)
 
     # Internal helpers ---------------------------------------------------------
@@ -176,6 +180,16 @@ class TimerService:
 
     def _elapsed(self, total_duration: float) -> float:
         return max(0.0, total_duration - self._remaining)
+
+    @property
+    def is_running(self) -> bool:
+        with self._lock:
+            return self.state in (TimerState.RUNNING_FOCUS, TimerState.RUNNING_BREAK)
+
+    @property
+    def is_paused(self) -> bool:
+        with self._lock:
+            return self.state == TimerState.PAUSED
 
     def _run_loop(self) -> None:
         import time
