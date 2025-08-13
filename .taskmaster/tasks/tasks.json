@@ -105,15 +105,15 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
             "title": "Models: SessionType, TimerState, Session dataclass",
             "description": "Define core enums and the Session data model for the Pomodoro domain.",
             "dependencies": [],
-            "details": "Create core/models.py with: Enum SessionType {FOCUS, BREAK}; Enum TimerState {IDLE, RUNNING_FOCUS, RUNNING_BREAK, PAUSED}; dataclass Session(id: UUID, type: SessionType, duration_s: int, started_at: datetime|None, ended_at: datetime|None, state: str). Use state values: 'running'|'finished'|'cancelled'. Provide __repr__ and validation helpers for duration_s > 0. Ensure models are GUI-agnostic and serializable-friendly.",
-            "status": "pending",
+            "details": "Create core/models.py with: Enum SessionType {FOCUS, BREAK}; Enum TimerState {IDLE, RUNNING_FOCUS, RUNNING_BREAK, PAUSED}; dataclass Session(id: UUID, type: SessionType, duration_s: int, started_at: datetime|None, ended_at: datetime|None, state: str). Use state values: 'running'|'finished'|'cancelled'. Provide __repr__ and validation helpers for duration_s > 0. Ensure models are GUI-agnostic and serializable-friendly.\n<info added on 2025-08-13T12:26:02.200Z>\n- Set Session.state type to TimerState (eliminate string literal states).\n- Configure the dataclass with frozen=False to allow partial mutability; treat id and type as stable (do not mutate) across the session lifecycle.\n- Ensure explicit type hints for all fields and helper functions; started_at and ended_at are Optional[datetime].\n- Keep the module GUI-agnostic with no GUI-related imports or dependencies.\n</info added on 2025-08-13T12:26:02.200Z>",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T12:23:33.987Z",
+      "updated": "2025-08-13T12:24:55.982Z",
       "description": "Tasks for master context"
     }
   }
