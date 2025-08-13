@@ -78,6 +78,7 @@ class TimerService:
                 raise RuntimeError("pause() only valid when timer is running")
             self.state = TimerState.PAUSED
             self._logger.info("Timer paused")
+        self._emit("state", self.state)
 
     def resume(self) -> None:
         with self._lock:
@@ -91,6 +92,7 @@ class TimerService:
                 else TimerState.RUNNING_BREAK
             )
             self._logger.info("Timer resumed")
+        self._emit("state", self.state)
 
     def stop(self) -> None:
         from datetime import datetime
@@ -105,6 +107,7 @@ class TimerService:
             self._logger.info("Timer stopped")
         # Join thread outside of lock to avoid deadlocks
         self._join_thread_if_running(timeout=2.0)
+        self._emit("state", self.state)
 
     # Internal helpers ---------------------------------------------------------
     def _start(self, session_type: SessionType, dur_s: int | None) -> None:
@@ -153,6 +156,8 @@ class TimerService:
             # prepare and start loop
             self._shutdown_event.clear()
             self._spawn_thread()
+        # Emit state change outside of lock
+        self._emit("state", self.state)
 
     # Internal ticking loop (implemented for subtask 2.4) ---------------------
     def _spawn_thread(self) -> None:
@@ -194,13 +199,55 @@ class TimerService:
                 last = now
                 self._remaining = max(0.0, self._remaining - delta)
 
-                # Emission of events will be implemented in subtask 2.6
-                # Example placeholder (intended): self._emit_tick()
+                # Prepare tick payload while holding the lock
+                if self._current_session is not None:
+                    elapsed_i = int(self._current_session.duration_s - self._remaining)
+                    remaining_i = int(self._remaining)
+                else:
+                    elapsed_i = 0
+                    remaining_i = int(self._remaining)
+                state_now = self.state
 
+                # Has the session finished?
                 if self._remaining <= 0:
-                    # Finishing the cycle logic is completed in later subtasks (2.5/2.6)
-                    # For now, just transition to IDLE and break the loop
+                    from datetime import datetime
+
+                    finished_session = self._current_session
+                    if finished_session is not None and finished_session.ended_at is None:
+                        finished_session.ended_at = datetime.now()
+                    # Transition to IDLE; emit outside the lock
                     self.state = TimerState.IDLE
-                    break
+                    state_after = self.state
+                else:
+                    finished_session = None
+                    state_after = None
+
+            # Outside lock: emit tick or cycle_end/state
+            if finished_session is not None:
+                self._emit("cycle_end", finished_session)
+                self._emit("state", state_after or TimerState.IDLE)
+                break
+            else:
+                self._emit("tick", elapsed_i, remaining_i, state_now)
+
+    # Event emission helpers ---------------------------------------------------
+    def _emit(self, event: Literal["tick", "cycle_end", "state"], *args: object) -> None:
+        # Collect callbacks from service-local observers and module-level registries
+        with self._lock:
+            local_callbacks = list(self._observers[event])
+        if event == "tick":
+            module_callbacks = list(TICK_CALLBACKS)
+        elif event == "cycle_end":
+            module_callbacks = list(CYCLE_END_CALLBACKS)
+        else:
+            module_callbacks = list(STATE_CALLBACKS)
+
+        callbacks: list[Callable[..., None]] = local_callbacks + module_callbacks
+        for cb in callbacks:
+            try:
+                cb(*args)
+            except Exception:
+                # Never let a callback exception crash the service loop
+                self._logger.exception("callback error in %s", event)
 
 
