@@ -124,7 +124,7 @@
               "2.1"
             ],
             "details": "Create core/ports.py with Protocol TimerPort: start_focus(dur_s: int) -> None, start_break(dur_s: int) -> None, pause() -> None, resume() -> None, stop() -> None. Define event callback types: OnTick(elapsed_s: int, remaining_s: int, state: TimerState) and OnCycleEnd(session: Session). Define an observer registration API: on(event: Literal['tick','cycle_end','state'], cb: Callable) -> None and off(event, cb) -> None. Keep ports independent from any GUI/threading framework.\n<info added on 2025-08-13T12:30:12.264Z>\nAdd explicit registration methods on the protocol and typed callbacks, plus a minimal registry:\n\n- Extend TimerPort with: on_tick(cb: TickCallback) -> None, on_cycle_end(cb: CycleEndCallback) -> None, on_state(cb: StateCallback) -> None.\n- Define callback type aliases:\n  - TickCallback = Callable[[int, int, TimerState], None]\n  - CycleEndCallback = Callable[[Session], None]\n  - StateCallback = Callable[[TimerState], None]\n- Provide a simple module-level registry (sets) for later use by the service, populated by the registration methods:\n  - TICK_CALLBACKS: set[TickCallback]\n  - CYCLE_END_CALLBACKS: set[CycleEndCallback]\n  - STATE_CALLBACKS: set[StateCallback]\n- No service logic here; keep the module free of GUI/threading dependencies.\n</info added on 2025-08-13T12:30:12.264Z>",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -135,8 +135,8 @@
               "2.1",
               "2.2"
             ],
-            "details": "Create core/timer_service.py with class TimerService(TimerPort). __init__(tick_interval: float = 1.0, clock: Callable[[], float] = time.monotonic, sleeper: Callable[[float], None] = time.sleep, logger: logging.Logger|None = None). Initialize state=TimerState.IDLE, default durations focus=25*60, break=5*60, observer registry {'tick': set(), 'cycle_end': set(), 'state': set()}, RLock, worker thread handle, remaining seconds, current_session=None. Use logging.getLogger('pomodoro.core') by default.",
-            "status": "pending",
+            "details": "Create core/timer_service.py with class TimerService(TimerPort). __init__(tick_interval: float = 1.0, clock: Callable[[], float] = time.monotonic, sleeper: Callable[[float], None] = time.sleep, logger: logging.Logger|None = None). Initialize state=TimerState.IDLE, default durations focus=25*60, break=5*60, observer registry {'tick': set(), 'cycle_end': set(), 'state': set()}, RLock, worker thread handle, remaining seconds, current_session=None. Use logging.getLogger('pomodoro.core') by default.\n<info added on 2025-08-13T12:32:25.064Z>\n- Add explicit callback registration methods:\n  - on_tick(callback) -> Callable[[], None]\n  - on_cycle_end(callback) -> Callable[[], None]\n  - on_state(callback) -> Callable[[], None]\n  - on(event: Literal[\"tick\", \"cycle_end\", \"state\"], callback) -> Callable[[], None]\n  Each method must be thread-safe (guard with the RLock), store the callback in the corresponding set in the internal observers registry, and return an unsubscribe closure that removes the callback from that set.\n\n- Introduce threading/lock placeholders without implementing the ticking loop:\n  - self._thread: threading.Thread | None = None\n  - self._shutdown_event: threading.Event = threading.Event()\n  Keep these unused for now; the loop is deferred to subtask 2.4.\n\n- Provide API stubs that match TimerPort and raise NotImplementedError:\n  - start_focus(self, dur_s: int | None = None) -> None\n  - start_break(self, dur_s: int | None = None) -> None\n  - pause(self) -> None\n  - resume(self) -> None\n  - stop(self) -> None\n\n- Keep the constructor with tick_interval, injectable clock, and logger; validate tick_interval > 0 and default to a namespaced logger if none is provided.\n\n- Ensure the module has no GUI dependencies (pure core).\n</info added on 2025-08-13T12:32:25.064Z>",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T12:29:25.120Z",
+      "updated": "2025-08-13T12:31:24.108Z",
       "description": "Tasks for master context"
     }
   }
