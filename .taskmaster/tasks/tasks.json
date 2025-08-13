@@ -76,7 +76,7 @@
               "1.5"
             ],
             "details": "- File: pomodoro_app/__main__.py\n- Implement main():\n  - Call setup_logging(app_name=\"pomodoro_app\").\n  - Log a startup message via pomodoro adapters/core loggers.\n  - Provide a '--smoke' flag that emits sample logs to each namespace and exits 0.\n  - Placeholder for future GUI/CLI startup (no GUI launch yet).\n- Ensure module is runnable with python -m pomodoro_app and via the console script entry point.\nAcceptance criteria:\n- python -m pomodoro_app runs without exception and creates log files.\n- python -m pomodoro_app --smoke writes messages to app.log, events.log, and plugin_errors.log and exits with code 0.\n<info added on 2025-08-13T10:33:11.706Z>\n- Use argparse to add a --smoke flag.\n- Loggers to use:\n  - Startup (no flags): logging.getLogger(\"pomodoro\").info(\"Startup: pomodoro initialized\") and logging.getLogger(\"pomodoro.core\").info(\"Startup: core initialized\").\n  - Smoke mode: logging.getLogger(\"pomodoro\").info(\"Smoke: application logger OK\"), logging.getLogger(\"pomodoro.core\").info(\"Smoke: core logger OK\"), logging.getLogger(\"plugin.demo\").error(\"Smoke: demo plugin error (expected)\")\n- In --smoke mode, emit the above messages and exit with code 0 via sys.exit(0).\n- Do not initialize or start any GUI; leave a clear stub comment for future startup code.\n- Ensure module can be executed directly by including the if __name__ == \"__main__\": main() guard.\n- Add console script entry point in pyproject.toml:\n  [project.scripts]\n  pomodoro-app = \"pomodoro_app.__main__:main\"\n- Acceptance verification:\n  - python -m pomodoro_app runs without exception and creates log files.\n  - python -m pomodoro_app --smoke writes to:\n    - app.log (from logger \"pomodoro\"),\n    - events.log (from logger \"pomodoro.core\"),\n    - plugin_errors.log (from logger \"plugin.demo\" at ERROR),\n    and exits with code 0.\n</info added on 2025-08-13T10:33:11.706Z>",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T10:31:32.931Z",
+      "updated": "2025-08-13T10:37:26.595Z",
       "description": "Tasks for master context"
     }
   }
