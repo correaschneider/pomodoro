@@ -5,6 +5,10 @@ import sys
 import logging
 
 from pomodoro_app.infrastructure.logging import setup_logging, get_logger
+from pomodoro_app.core.timer_service import TimerService
+from pomodoro_app.infrastructure.db.connection import connect
+from pomodoro_app.infrastructure.db.schema import ensure_schema
+from pomodoro_app.infrastructure.db.integration import wire_persistence, load_settings
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -31,7 +35,18 @@ def main(argv: list[str] | None = None) -> int:
         plugin_demo_logger.error("Smoke: demo plugin error (expected)")
         return 0
 
-    # Placeholder: inicialização futura de GUI/CLI
+    # Minimal wiring for persistence and service lifecycle (no GUI bootstrap here)
+    conn = connect()
+    ensure_schema(conn)
+    settings = load_settings(conn)
+
+    service = TimerService()
+    unsubscribe = wire_persistence(service, conn)
+    try:
+        app_logger.info("TimerService and persistence wiring initialized")
+    finally:
+        # Ensure clean unsubscribe on exit path
+        unsubscribe()
     return 0
 
 

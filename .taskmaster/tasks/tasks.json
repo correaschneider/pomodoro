@@ -618,7 +618,7 @@
               "6.4"
             ],
             "details": "Files: adapters composition root or app startup module. On app start: initialize connection (6.1), create schema (6.2), instantiate repositories (6.3/6.4), and read settings to configure TimerService defaults (focus/break durations, overlay, language). Subscribe to TimerService on_cycle_end(session) to call SessionRepository.add(session). Ensure graceful shutdown closes connection. Handle missing settings by applying sensible defaults and writing them on first run.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T14:35:28.378Z",
+      "updated": "2025-08-13T14:36:38.971Z",
       "description": "Tasks for master context"
     }
   }
