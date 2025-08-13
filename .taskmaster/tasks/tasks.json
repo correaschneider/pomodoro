@@ -583,7 +583,7 @@
               "6.2"
             ],
             "details": "Files: infrastructure/db/repositories.py. Class SessionRepository with constructor(conn, logger). Methods: add(session) inserting (id, type.name, duration_s, started_at.isoformat(), ended_at?.isoformat(), state) using parameterized SQL; list_by_period(start: datetime, end: datetime) returning domain Session objects filtered by started_at >= start and < end; last_n(n: int) ordering by started_at DESC LIMIT n. Ensure proper ISO 8601 serialization/deserialization, and handle None ended_at. Add minimal input validation and convert enum/string types appropriately.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T13:46:51.896Z",
+      "updated": "2025-08-13T13:51:51.603Z",
       "description": "Tasks for master context"
     }
   }
