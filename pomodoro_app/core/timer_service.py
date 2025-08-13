@@ -81,4 +81,53 @@ class TimerService:
     def stop(self) -> None:
         raise NotImplementedError
 
+    # Internal ticking loop (implemented for subtask 2.4) ---------------------
+    def _spawn_thread(self) -> None:
+        with self._lock:
+            if self._thread and self._thread.is_alive():
+                return
+            self._shutdown_event.clear()
+            self._thread = threading.Thread(target=self._run_loop, name="TimerServiceThread", daemon=True)
+            self._thread.start()
+
+    def _join_thread_if_running(self, timeout: float | None = None) -> None:
+        with self._lock:
+            thread = self._thread
+        if thread and thread.is_alive():
+            thread.join(timeout=timeout)
+
+    def _elapsed(self, total_duration: float) -> float:
+        return max(0.0, total_duration - self._remaining)
+
+    def _run_loop(self) -> None:
+        import time
+
+        last = self._clock()
+        while not self._shutdown_event.is_set():
+            time.sleep(self._tick_interval)
+            now = self._clock()
+
+            with self._lock:
+                # Only progress time while running; paused keeps last synced
+                if self.state == TimerState.PAUSED:
+                    last = now
+                    continue
+
+                if self.state not in (TimerState.RUNNING_FOCUS, TimerState.RUNNING_BREAK):
+                    # Not actively running; end the loop gracefully
+                    break
+
+                delta = max(0.0, now - last)
+                last = now
+                self._remaining = max(0.0, self._remaining - delta)
+
+                # Emission of events will be implemented in subtask 2.6
+                # Example placeholder (intended): self._emit_tick()
+
+                if self._remaining <= 0:
+                    # Finishing the cycle logic is completed in later subtasks (2.5/2.6)
+                    # For now, just transition to IDLE and break the loop
+                    self.state = TimerState.IDLE
+                    break
+
 

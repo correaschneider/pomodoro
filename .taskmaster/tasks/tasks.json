@@ -147,7 +147,7 @@
               "2.3"
             ],
             "details": "Implement _run_loop(): use last=self.clock(); loop while state in {RUNNING_FOCUS, RUNNING_BREAK, PAUSED}; call sleeper(tick_interval); now=self.clock(); if PAUSED: last=now; continue; delta=now-last; last=now; under lock, decrement remaining = max(0, remaining - delta); emit tick with int(elapsed), int(remaining), current state; if remaining <= 0, call _finish_cycle() and break. Provide _elapsed() helper returning duration_s - remaining. Ensure drift minimization by basing on monotonic delta rather than tick_interval.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T12:31:24.108Z",
+      "updated": "2025-08-13T12:36:22.401Z",
       "description": "Tasks for master context"
     }
   }
