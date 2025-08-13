@@ -1,0 +1,93 @@
+{
+	"meta": {
+		"generatedAt": "2025-08-11T12:03:10.357Z",
+		"tasksAnalyzed": 10,
+		"totalTasks": 10,
+		"analysisCount": 10,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Project scaffolding, Hexagonal layout, and base logging",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Expand into: (1) repository layout per ADR-008; (2) pyproject.toml with PEP 621, Python>=3.12, extras and entry point; (3) developer tooling (ruff/black, pytest.ini, .gitignore, semantic commits); (4) centralized logging module per ADR-012 using platformdirs and RotatingFileHandler, idempotent setup, captureWarnings; (5) logger namespaces and docs; (6) __main__ bootstrap with --smoke; (7) unit/integration tests for log creation, rotation, namespace routing. Include cross-platform paths and acceptance criteria for each.",
+			"reasoning": "Cross-platform scaffolding and logging with rotation, namespacing, and tooling setup adds moderate complexity, but scope is well-bounded and testable."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Core timer domain and use-cases",
+			"complexityScore": 8,
+			"recommendedSubtasks": 9,
+			"expansionPrompt": "Decompose into: (1) models (enums, Session dataclass); (2) ports and callback types; (3) TimerService constructor and state; (4) monotonic ticking loop with pause; (5) API methods with reentrancy/state guards; (6) observer registry and safe emission; (7) concurrency/thread lifecycle and idempotency; (8) domain errors; (9) comprehensive tests incl. properties, concurrency, drift bounds. Define acceptance criteria for state transitions and callback ordering.",
+			"reasoning": "Non-trivial concurrency, state management, and timing accuracy with robust error handling and extensive tests drive high complexity."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "PySide6 GUI main window and controls",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Break down into: (1) QApplication bootstrap with translator hook; (2) thread-safe QObject bridge; (3) MainWindow UI; (4) controller wiring and Pause/Resume toggle; (5) time formatting utility + tests; (6) settings dialog stub; (7) graceful shutdown and tray-aware closeEvent; (8) pytest-qt integration tests and basic logging. Specify signal/slot threading and UI update acceptance criteria.",
+			"reasoning": "GUI wiring to a threaded domain via signals/slots and maintaining responsive stateful controls is moderately complex and requires careful testing."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "System tray adapter (QSystemTrayIcon)",
+			"complexityScore": 6,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Expand into: (1) TrayController base and icon/menu scaffold; (2) actions wired to TimerService/MainWindow; (3) tooltip updates via bridge tick/state; (4) state-driven action toggling; (5) cross-OS icon/availability nuances and logging; (6) pytest-qt tests and manual checklist. Define enable/disable and label toggle acceptance criteria.",
+			"reasoning": "Tray UI is straightforward but has platform nuances and state synchronization requirements with the domain and GUI."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Notifications and overlay visual with fallbacks",
+			"complexityScore": 8,
+			"recommendedSubtasks": 9,
+			"expansionPrompt": "Decompose into: (1) NotificationService API; (2) backend selection logic; (3) Linux notify2 wrapper; (4) Windows win10toast wrapper; (5) macOS pync/osascript wrapper; (6) Qt overlay widget; (7) fallback chain implementation; (8) domain integration with TimerService; (9) tests for fallbacks, platform branches, and headless safety. Include thread-hopping to the GUI thread where needed.",
+			"reasoning": "Multiple OS backends with graceful degradation, UI overlay, and robust error handling make this integration-heavy and error-prone."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "SQLite persistence and repositories",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Break down into: (1) DB path/connection setup (WAL, pragmas); (2) schema creation; (3) SessionRepository; (4) SettingsRepository with JSON; (5) StatsService; (6) application wiring to domain events; (7) logging/error handling; (8) unit/integration/concurrency tests. Define serialization formats and transaction boundaries.",
+			"reasoning": "Database setup, schema, repositories, and event-driven writes add moderate complexity with concurrency considerations and cross-platform paths."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Internationalization (gettext) setup",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Expand into: (1) i18n core module (domain, loader/install, helpers); (2) runtime switching and notification; (3) initial en-US/pt-BR catalogs; (4) extraction/compile scripts and build inclusion; (5) GUI integration and live retranslate; (6) plugin translation support; (7) tests for fallback, runtime refresh, and packaging. Specify normalization (en-US→en_US).",
+			"reasoning": "Runtime language switching and plugin domains plus build-time tooling and packaging raise complexity beyond basic gettext usage."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "PluginManager (Pluggy) with minimal hooks and security validations",
+			"complexityScore": 9,
+			"recommendedSubtasks": 10,
+			"expansionPrompt": "Decompose into: (1) hookspecs; (2) discovery strategy; (3) plugin.toml parsing/validation; (4) SemVer compatibility checks; (5) loader/registration via importlib + Pluggy with GUI gating; (6) security/permissions model and SafeAppContext; (7) per-plugin logging/error channel; (8) wire domain events to hooks; (9) example plugin; (10) unit/integration tests incl. failure isolation. Define deny-by-default and logging to plugin_errors.log.",
+			"reasoning": "Dynamic discovery/loading with metadata validation, version gating, security posture, and failure isolation is complex and risk-prone."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Update checker with cached remote JSON and non-intrusive UX",
+			"complexityScore": 6,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Break down into: (1) cache design and freshness policy with atomic writes; (2) networking/JSON parsing with timeouts and UA; (3) version comparison incl. pre-release rules; (4) scheduling/threading and API (check_now/schedule) with single-flight; (5) UX integration via NotificationService and manual action; (6) tests for cache, networking, versioning, and signals. Define offline-first behavior and opt-out.",
+			"reasoning": "Networking with caching and background threading is moderate; careful version handling and non-blocking UX are key."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Packaging (PyInstaller) and CI/CD (GitHub Actions) for multi-platform",
+			"complexityScore": 8,
+			"recommendedSubtasks": 9,
+			"expansionPrompt": "Decompose into: (1) PyInstaller spec (datas, hiddenimports, Qt plugins, runtime hooks); (2) plugin runtime directory creation/doc; (3) local build validation; (4) GitHub Actions matrix setup; (5) lint/tests/audit stages; (6) CI build + artifact upload; (7) tag-triggered release job; (8) headless smoke run and artifact checks; (9) installation/docs. Include acceptance criteria per OS and version alignment checks.",
+			"reasoning": "Cross-OS packaging with Qt plugins and a full CI/release pipeline requires many moving parts and platform-specific fixes."
+		}
+	]
+}

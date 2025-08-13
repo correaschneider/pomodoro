@@ -1,0 +1,121 @@
+# Task ID: 7
+# Title: Internationalization (gettext) setup
+# Status: pending
+# Dependencies: 1, 3, 6
+# Priority: medium
+# Description: Configure gettext with .po/.mo catalogs, implement locale loading/switching, and ensure all UI strings are translatable with plugin support.
+# Details:
+Implementation (ADR-004):
+- infrastructure/i18n/i18n.py:
+  - DOMAIN = "pomodoro_app"; LOCALES_DIR = resources/locales
+  - load_locale(lang_code): gettext.translation(DOMAIN, LOCALES_DIR, languages=[lang_code], fallback=True)
+  - install(lang_code): set global _ = translation.gettext; expose ngettext, pgettext helpers
+  - runtime switch: re-install and emit signal for UI to refresh texts
+- Tools: scripts to extract strings (xgettext/pybabel) and compile .po → .mo; include at build time.
+- GUI integration: call install(settings["language"]) on startup; connect to settings changes to reload translator; retranslateUi pattern in Qt or reassign texts.
+- Plugins: allow plugin_manager to register plugin catalogs; e.g., register_plugin_domain(name, locales_path) returning a translation object for plugin to use.
+Deliverables: i18n module, initial locales for en-US and pt-BR (skeleton), integration hooks in GUI.
+
+# Test Strategy:
+- Unit: load_locale for non-existent language falls back to default without error.
+- Integration: change language setting; verify main window and tray texts update.
+- Build: compile .po to .mo and confirm files included in PyInstaller artifact.
+
+# Subtasks:
+## 1. i18n core module (domain, locales dir, loader/install, helpers) [pending]
+### Dependencies: None
+### Description: Implement the core gettext-based internationalization module with domain/locale configuration, locale loading, installation, and gettext helper functions.
+### Details:
+- File: infrastructure/i18n/i18n.py
+- Constants: DOMAIN = "pomodoro_app"; LOCALES_DIR = "resources/locales"
+- Function load_locale(lang_code): return gettext.translation(DOMAIN, localedir=LOCALES_DIR, languages=[lang_code], fallback=True)
+- Function install(lang_code):
+  - t = load_locale(lang_code)
+  - Set module-level translation reference and install gettext with t.gettext as _
+  - Expose ngettext = t.ngettext; implement pgettext via t.pgettext if available, else fallback to combining context/message or returning message
+  - Provide normalize_language(lang_code) to map app settings (e.g., en-US -> en_US)
+- Expose API: load_locale, install, ngettext, pgettext, normalize_language
+- Add typing hints and docstrings; ensure idempotent install
+
+## 2. Runtime switching and notification [pending]
+### Dependencies: 7.1
+### Description: Enable switching the active language at runtime by reinstalling the translator and notifying listeners to refresh UI text.
+### Details:
+- Add switch_language(lang_code): normalize -> install(lang_code); if language changed, emit notification
+- Provide event mechanism:
+  - If PySide6 available: I18nSignals(QObject) with language_changed = Signal(str)
+  - Always provide a lightweight callback registry: add_language_listener(cb), remove_language_listener(cb)
+- Ensure no-op if requested language equals current
+- Document thread-safety expectations (emit on GUI thread when using Qt)
+- Deliverables: switch_language API, signal/callbacks, documentation
+
+## 3. Initial locale catalogs (en-US, pt-BR) [pending]
+### Dependencies: 7.1
+### Description: Create skeleton PO catalogs and compiled MO files for en-US and pt-BR under resources/locales with correct directory structure.
+### Details:
+- Directories:
+  - resources/locales/en_US/LC_MESSAGES/pomodoro_app.po
+  - resources/locales/pt_BR/LC_MESSAGES/pomodoro_app.po
+- Initialize headers (Project-Id-Version, Language, Plural-Forms, etc.); add at least one sample msgid
+- Compile to .mo in same LC_MESSAGES directories (temporary manual compile acceptable until scripts exist)
+- Ensure language code normalization mapping covers en-US -> en_US and pt-BR -> pt_BR
+- Add to VCS; mark untranslated entries as fuzzy
+- Deliverables: two .po files and compiled .mo placeholders
+
+## 4. Extraction and build scripts for catalogs [pending]
+### Dependencies: 7.1, 7.3
+### Description: Create scripts to extract strings and compile catalogs, and integrate into the build process so .mo files are included in artifacts.
+### Details:
+- Use Babel (pybabel) or gettext toolchain; provide ready-to-run scripts:
+  - scripts/i18n/extract.sh: pybabel extract -F babel.cfg -o resources/locales/messages.pot .
+  - scripts/i18n/update.sh: pybabel update -D pomodoro_app -i resources/locales/messages.pot -d resources/locales -l en_US -l pt_BR
+  - scripts/i18n/compile.sh: pybabel compile -D pomodoro_app -d resources/locales
+- Create babel.cfg mapping for Python sources (and Qt .ui if used)
+- CI/build integration: add steps to run extract/update (optional) and compile prior to packaging
+- Packaging (e.g., PyInstaller): include resources/locales/**/LC_MESSAGES/*.mo via spec or hook
+- Developer docs: how to add a new locale and update catalogs
+
+## 5. GUI integration (startup install and live retranslate) [pending]
+### Dependencies: 7.1, 7.2
+### Description: Install the translator on app startup from settings and retranslate MainWindow and Tray UI on language change.
+### Details:
+- adapters/gui/app.py: call i18n.install(settings["language"]) before creating windows; subscribe to i18n.language_changed
+- settings change handler: when language setting changes, call i18n.switch_language(new_lang)
+- adapters/gui/main_window.py and tray:
+  - Wrap all user-visible strings with _()
+  - Implement retranslateUi()/update_texts() that resets labels, actions, menus
+  - Connect to i18n signal to call update_texts on language change
+- Verify Menu/Tray actions and status bar texts update correctly
+- Document pattern for new widgets: define update_texts and connect at construction
+
+## 6. Plugin translation support [pending]
+### Dependencies: 7.1
+### Description: Allow plugins to register their own gettext domains and locale directories and get translation functions bound to the app language.
+### Details:
+- In i18n module:
+  - register_plugin_domain(name: str, locales_path: str|Path) -> gettext.NullTranslations|GNUTranslations
+  - get_plugin_gettext(name: str) -> Callable[[str], str] returning domain-specific _
+  - Maintain registry {name: (locales_path, translation)}; reload on language change
+- On i18n.switch_language, reload all registered plugin translations for the new language
+- Plugin usage doc: _p = i18n.get_plugin_gettext("my_plugin"); _p("Hello")
+- Validate locales_path existence; fallback to NullTranslations if missing; log warnings
+- Optional: expose plugin ngettext/pgettext if needed
+
+## 7. Tests: fallback, runtime refresh, packaging [pending]
+### Dependencies: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6
+### Description: Add unit and integration tests for i18n fallback behavior, runtime UI refresh on language change, plugin translations, and packaging of .mo files.
+### Details:
+- Unit tests:
+  - load_locale with unknown lang returns a translation that yields original strings
+  - install sets global _; pgettext and ngettext proxies work
+  - normalize_language handles en-US/pt-BR mappings
+- Integration (pytest-qt):
+  - Launch MainWindow with en-US, then switch to pt-BR; assert button/menu texts change
+  - Verify i18n.language_changed emitted once per switch
+- Plugin tests:
+  - Temp plugin domain with test locales; assert _p uses correct translation and updates after switch_language
+- Build/packaging:
+  - Run compile script and assert .mo files exist
+  - If using PyInstaller in CI, assert .mo files included in dist; otherwise validate inclusion config
+- Include negative case: missing pt-BR .mo fallback without crash
+

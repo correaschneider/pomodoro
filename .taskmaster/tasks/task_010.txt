@@ -1,0 +1,189 @@
+# Task ID: 10
+# Title: Packaging (PyInstaller) and CI/CD (GitHub Actions) for multi-platform
+# Status: pending
+# Dependencies: 1, 3, 5, 6, 7, 8, 9
+# Priority: medium
+# Description: Create PyInstaller spec including resources and plugins path, and configure GitHub Actions matrix for lint, tests, security audit, and multi-OS builds with release by tag.
+# Details:
+Implementation (ADR-013, ADR-009):
+- Packaging:
+  - Create pomodoro_app.spec: Analysis hiddenimports for PySide6 (QtCore, QtGui, QtWidgets), pluggy, packaging; datas include resources/locales/*.mo, icons, themes; set binaries for platform plugins (Qt)
+  - Runtime plugin dir discovery: ~/.pomodoro/plugins (document), ensure created on first run
+  - Entry point: pomodoro_app.__main__:main
+  - Test building on at least one OS locally
+- CI/CD (.github/workflows/build.yml):
+  - Triggers: push PR, tags v*.*.* for release
+  - Strategy matrix: os: [ubuntu-latest, windows-latest, macos-latest]; python: ['3.12']
+  - Steps:
+    - actions/checkout
+    - setup-python
+    - cache pip
+    - pip install .[dev]
+    - ruff check . && black --check .
+    - pytest -q
+    - pip-audit || (allow failures on some OS if necessary)
+    - Build: run PyInstaller with spec; upload artifacts
+    - On tag: create release, attach artifacts (exe, AppImage/tar.gz, dmg)
+YAML sketch:
+name: ci
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  build:
+    strategy: {matrix: {os: [ubuntu-latest, windows-latest, macos-latest], python: ['3.12']}}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: ${{ matrix.python }}}
+      - run: pip install .[dev]
+      - run: ruff check .
+      - run: black --check .
+      - run: pytest -q
+      - run: pip-audit || true
+      - run: python -m PyInstaller pomodoro_app.spec
+      - uses: actions/upload-artifact@v4
+        with: {name: dist-${{ runner.os }}, path: dist/}
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    ...
+Deliverables: spec file, workflow YAML, docs for artifacts and installation.
+
+# Test Strategy:
+- CI dry-run on branches: verify lint/test/audit stages pass.
+- Build validation: artifacts produced per OS; smoke-run app to ensure GUI launches (where possible headless flags applied).
+- Release test: tag a pre-release and ensure assets attach; verify locales and icons present in bundle; verify plugin discovery path exists.
+
+# Subtasks:
+## 1. Create PyInstaller spec (pomodoro_app.spec) [pending]
+### Dependencies: None
+### Description: Author and validate a PyInstaller spec that bundles the app entry point, resources, and Qt binaries.
+### Details:
+Scope:
+- File: pomodoro_app.spec
+- Entry point: pomodoro_app.__main__:main
+- Hidden imports: PySide6.QtCore, PySide6.QtGui, PySide6.QtWidgets, pluggy, packaging
+- Datas: resources/locales/*.mo → resources/locales; resources/icons/* → resources/icons; resources/themes/**/* → resources/themes
+- Binaries: include Qt platform plugins (platforms, imageformats) for PySide6; ensure runtime hook sets QT_PLUGIN_PATH at run-time to packaged directory
+- Runtime hooks: add a runtime hook to ensure Qt plugin path resolution and to log startup errors early
+- Build mode: one-folder per-OS builds acceptable; single-file optional
+Acceptance criteria per platform:
+- Linux: Built app starts without 'Could not load the Qt platform plugin "xcb"' errors; resources/locales/*.mo present in dist
+- Windows: Built .exe launches without missing DLL or platform plugin errors; icons/themes available
+- macOS: Built .app bundle runs (via open or direct binary); Qt plugins embedded; resources available
+
+## 2. Implement and document plugin runtime directory [pending]
+### Dependencies: None
+### Description: Ensure a user plugin directory is discovered and created on first run and is documented.
+### Details:
+Scope:
+- Path: ~/.pomodoro/plugins
+- Implement on startup: if directory does not exist, create it; log path on startup
+- Expose helper: get_plugin_dir() for other components
+- Document path and usage in docs/README (later consolidated in docs task)
+Acceptance criteria per platform:
+- Linux: ~/.pomodoro/plugins auto-created on first run
+- Windows: %USERPROFILE%\.pomodoro\plugins auto-created on first run
+- macOS: /Users/<user>/.pomodoro/plugins auto-created on first run
+- App logs show the directory path on startup
+
+## 3. Local build validation of spec [pending]
+### Dependencies: 10.1, 10.2
+### Description: Build locally on at least one OS, fix hooks/paths until the app starts and resources are present.
+### Details:
+Scope:
+- Commands: pip install .[dev]; python -m PyInstaller pomodoro_app.spec
+- Validate the dist output: ensure locales (.mo), icons, themes packaged
+- Test run: launch with headless-friendly settings where necessary (e.g., QT_QPA_PLATFORM=offscreen or '-platform offscreen')
+- Adjust spec (datas, binaries, runtime hooks) based on findings
+Acceptance criteria:
+- On the developer OS, built app starts successfully
+- Resource presence verified: at least one .mo file and icons are in dist
+- No missing Qt platform plugin errors
+
+## 4. Configure GitHub Actions workflow matrix [pending]
+### Dependencies: 10.1
+### Description: Create .github/workflows/build.yml with multi-OS matrix and Python 3.12, including dependency caching.
+### Details:
+Scope:
+- Triggers: push, pull_request, workflow_dispatch (release handled separately)
+- Matrix: os = [ubuntu-latest, windows-latest, macos-latest]; python = ['3.12']
+- Steps: actions/checkout@v4; actions/setup-python@v5 with cache: 'pip'; pip install .[dev]
+- Prepare artifact naming convention: dist-${{ runner.os }}
+Acceptance criteria per platform:
+- Linux/Windows/macOS jobs start and complete setup successfully
+- Python 3.12 used; pip cache hits on subsequent runs
+
+## 5. Add lint, tests, and security audit stages [pending]
+### Dependencies: 10.4
+### Description: Integrate ruff, black --check, pytest, and pip-audit into the CI workflow.
+### Details:
+Scope:
+- Steps: ruff check .; black --check .; pytest -q; pip-audit (allow non-blocking via continue-on-error or '|| true')
+- Test summaries as job output; fail build on lint/test failures
+Acceptance criteria per platform:
+- All OS run ruff, black, pytest; failures block subsequent steps
+- pip-audit runs on all OS and does not block if vulnerabilities are found (per policy)
+- Test artifacts (logs) visible in job output
+
+## 6. CI build stage and artifact upload [pending]
+### Dependencies: 10.5
+### Description: Run PyInstaller in CI and upload per-OS artifacts.
+### Details:
+Scope:
+- Build: python -m PyInstaller pomodoro_app.spec
+- Artifact upload: actions/upload-artifact@v4 with name dist-${{ runner.os }}, path dist/
+- Optional packaging: Linux tar.gz (or AppImage if tooling available), Windows .zip/.exe, macOS .dmg (or .zip of .app)
+- Ensure resources (locales/icons/themes) and Qt plugins are included
+Acceptance criteria per platform:
+- Linux: artifact contains runnable binary and resources/locales/*.mo; Qt platform plugins present
+- Windows: artifact includes the .exe and required DLLs; resources present
+- macOS: artifact includes .app (and .dmg if produced); resources present; codesign not required for CI
+- Artifact names follow convention and are downloadable from CI
+
+## 7. Release job with tag-triggered publishing [pending]
+### Dependencies: 10.6
+### Description: Create a release job that triggers on tags v*.*.* and attaches built artifacts.
+### Details:
+Scope:
+- Trigger: if startsWith(github.ref, 'refs/tags/v')
+- Needs: build
+- Use action (e.g., softprops/action-gh-release or actions/create-release) to create release and upload assets
+- Asset mapping: attach Windows exe/zip, Linux tar.gz/AppImage, macOS dmg/zip
+- Version alignment: verify tag matches application version (pyproject.toml) and fail if mismatched
+Acceptance criteria per platform:
+- Creating a tag vX.Y.Z triggers release; assets from all OS are attached
+- Release notes include build matrix summary
+- Version check passes when tag matches package version
+
+## 8. Automated smoke run and artifact sanity checks [pending]
+### Dependencies: 10.6
+### Description: Add post-build smoke tests to ensure the packaged app starts and required files exist.
+### Details:
+Scope:
+- Add a step after build to run the produced binary headlessly
+  - Linux: env QT_QPA_PLATFORM=offscreen ./dist/<app>/... or pass '-platform offscreen'
+  - Windows: run .exe with '-platform offscreen'
+  - macOS: run binary within .app Contents/MacOS with '-platform offscreen'
+- Introduce optional env (e.g., POMODORO_EXIT_AFTER_START=1) to auto-exit after init
+- Sanity checks: verify presence of resources/locales/*.mo, icons, themes in artifact
+Acceptance criteria per platform:
+- Linux/Windows/macOS smoke run completes within timeout with exit code 0
+- Sanity checks pass: locales and icons found in artifact
+- Failures block release job
+
+## 9. Documentation for install, artifacts, and plugins [pending]
+### Dependencies: 10.1, 10.2, 10.6, 10.7, 10.8
+### Description: Write docs covering installation from releases, artifact contents, platform notes, and plugin directory.
+### Details:
+Scope:
+- Installation instructions per OS (Linux, Windows, macOS), including prerequisites (if any) and how to run
+- Describe artifact contents (where the binary/app is, where locales/icons/themes are)
+- Document plugin directory: ~/.pomodoro/plugins and OS-specific paths; how to add plugins
+- Note headless flags and troubleshooting (Qt platform plugin errors)
+- Deliverables: README sections and/or docs pages; link to Releases
+Acceptance criteria per platform:
+- Linux/Windows/macOS instructions verified using CI artifacts
+- Docs mention that locales/resources are packaged and how to verify
+- Plugin path documented and matches runtime behavior
+

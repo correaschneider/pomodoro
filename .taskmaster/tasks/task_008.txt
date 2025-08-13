@@ -1,0 +1,163 @@
+# Task ID: 8
+# Title: PluginManager (Pluggy) with minimal hooks and security validations
+# Status: pending
+# Dependencies: 1, 2, 3, 7
+# Priority: high
+# Description: Implement plugin loading via Pluggy with defined hookspecs, discovery in user folder, SemVer compatibility checks, and declarative permissions validation.
+# Details:
+Implementation (ADR-002, ADR-007, ADR-011, ADR-015):
+- plugin_manager/spec.py (hookspecs): on_app_start(app_ctx), on_timer_tick(elapsed, remaining, state), on_cycle_end(session), provide_settings_ui(parent) -> QWidget|None
+- plugin_manager/manager.py:
+  - Use pluggy.PluginManager("pomodoro_app")
+  - Discovery: ~/.pomodoro/plugins (or platform data dir)/<plugin_name> with plugin.toml and main.py
+  - Read plugin.toml (tomllib/tomli) with required keys: [plugin] name, version, compatible_with; [access] filesystem/network/requires_gui
+  - Validate SemVer compatibility using packaging.specifiers.SpecifierSet and app __version__
+  - Register plugin via importlib.util.spec_from_file_location; module attr hookimpls decorated with pluggy.HookimplMarker("pomodoro_app")
+  - Security policy: deny load if missing or incompatible, log to plugin_errors.log; expose only safe context in app_ctx; mark permissions in registry for auditing; GUI-only plugins must be skipped if GUI not available
+  - Isolated logging: configure logger name plugin.<name>
+- Wire domain events: TimerService.on("tick", pm.hook.on_timer_tick(...)); on cycle_end; call on_app_start during app bootstrap
+- Example plugin in plugins/example_plugin for docs/tests.
+Pseudo-code:
+pm = pluggy.PluginManager("pomodoro_app"); pm.add_hookspecs(spec)
+for folder in discover_plugin_folders():
+    meta = parse_toml(folder/"plugin.toml")
+    if not compatible(meta["plugin"]["compatible_with"], APP_VERSION): log and continue
+    mod = load_module_from_path(f"plugin_{meta['plugin']['name']}", folder/"main.py")
+    pm.register(mod)
+Deliverables: hookspecs, manager with discovery & validation, integration with core and GUI.
+
+# Test Strategy:
+- Unit: TOML parsing and SemVer checks; incompatible plugin rejected with proper log.
+- Integration: temp plugin dir with basic on_app_start and on_timer_tick; verify callbacks receive data; ensure permissions flags stored.
+- Security: try plugin missing permissions; ensure defaults and warnings; malicious plugin raising exception does not crash app (handled/logged).
+
+# Subtasks:
+## 1. Define Pluggy hookspecs [pending]
+### Dependencies: None
+### Description: Create hookspecs for plugin lifecycle and UI contribution.
+### Details:
+- File: plugin_manager/spec.py
+- Define HookSpecMarker("pomodoro_app") and hooks:
+  - on_app_start(app_ctx)
+  - on_timer_tick(elapsed, remaining, state)
+  - on_cycle_end(session)
+  - provide_settings_ui(parent) -> QWidget or None
+- Type hints and docstrings for each hook
+- Export a function add_hookspecs(pm: pluggy.PluginManager) to register specs
+- Acceptance: Pluggy can import spec module and pm.add_hookspecs works
+
+## 2. Implement plugin discovery strategy [pending]
+### Dependencies: None
+### Description: Resolve user plugin directory and scan for candidate plugin folders.
+### Details:
+- File: plugin_manager/manager.py (Discovery section)
+- Determine base dir: use platformdirs.user_data_dir("pomodoro_app") or fallback to ~/.pomodoro/plugins
+- Final dir: <base>/plugins
+- Optional env override POMODORO_PLUGIN_DIR for tests/dev
+- Discover children where both plugin.toml and main.py exist
+- Return list of pathlib.Path entries with stable ordering (sorted)
+- Create directory if missing
+- Acceptance: Given a temp dir with sample plugin folders, discovery returns expected set
+
+## 3. Parse and validate plugin.toml metadata [pending]
+### Dependencies: 8.2
+### Description: Read plugin.toml and validate required fields including permissions.
+### Details:
+- Read with tomllib (py>=3.11) or tomli fallback
+- Required sections/keys:
+  - [plugin]: name (str, slug-like), version (SemVer string), compatible_with (PEP 440 specifier string)
+  - [access]: filesystem (bool, default false), network (bool, default false), requires_gui (bool, default false)
+- Validate: unique name, safe characters [a-zA-Z0-9_-], version is valid Version
+- Return a dataclass PluginMeta with fields and source path
+- On missing/invalid, raise PluginMetaError with reasons
+- Acceptance: Unit tests cover valid/invalid TOML cases and defaults
+
+## 4. SemVer compatibility checks [pending]
+### Dependencies: 8.3
+### Description: Validate plugin compatibility using packaging specifiers against app version.
+### Details:
+- Use packaging.version.Version for app __version__
+- Use packaging.specifiers.SpecifierSet(meta.compatible_with)
+- Function is_compatible(meta: PluginMeta, app_version: Version) -> bool
+- Log decision reason on mismatch (e.g., requires >=1.2,<2.0; app is 1.1.0)
+- Acceptance: Unit tests for pass/fail matrix across specifiers
+
+## 5. Loader and registration via importlib + Pluggy [pending]
+### Dependencies: 8.1, 8.2, 8.3, 8.4
+### Description: Load module from path, gate GUI-only plugins, and register hookimpls.
+### Details:
+- Build PluginManager("pomodoro_app"); add hookspecs
+- For each discovered folder:
+  - Parse metadata (reuse 8.3) and compatibility (8.4)
+  - If meta.access.requires_gui and GUI not available (no Qt or headless), skip with log
+  - Load module via importlib.util.spec_from_file_location and module_from_spec; execute in isolated module name: pomodoro_plugin_<safe_name>
+  - Require plugin uses pluggy.HookimplMarker("pomodoro_app"); registration: pm.register(module, name=meta.plugin.name)
+  - Maintain registry dict with meta and resolved permissions
+- Errors during load/registration are caught and recorded for logging (7) and auditing
+- Acceptance: Integration test loads a valid plugin and pm.get_plugins() includes it
+
+## 6. Security posture and permission model [pending]
+### Dependencies: 8.1, 8.3, 8.5
+### Description: Enforce deny-by-default permissions and expose restricted app_ctx.
+### Details:
+- Define SafeAppContext with limited methods/data (no direct file/network handles)
+- Map [access] flags to registry for auditing; deny load if required flags missing or invalid types
+- Prevent implicit escalation: default all permissions false
+- For filesystem/network usage, only allow via explicit app-provided facades (stubs for now) and record intent
+- Skip or degrade provide_settings_ui when GUI unavailable
+- Ensure plugin cannot mutate core singletons via app_ctx; pass copies or wrappers
+- Acceptance: Attempting to load plugin with missing [plugin] or malformed [access] denies load with recorded reason
+
+## 7. Per-plugin logging and error channel [pending]
+### Dependencies: 8.5
+### Description: Configure logger hierarchy plugin.<name> and a plugin_errors.log sink.
+### Details:
+- Create logger per plugin: logging.getLogger(f"plugin.{name}")
+- Configure a dedicated FileHandler plugin_errors.log (in user data dir) for loader and hook invocation errors
+- Ensure plugin loggers inherit app handlers but can be tuned; avoid duplicate logs via propagate settings
+- Include correlation fields: plugin name, phase (discovery/load/hook), exception traceback
+- Acceptance: When a plugin raises in a hook, error is written to plugin_errors.log without crashing app
+
+## 8. Wire domain events to plugin hooks [pending]
+### Dependencies: 8.1, 8.5
+### Description: Bridge TimerService and app bootstrap to Pluggy hooks with isolation.
+### Details:
+- On application start, construct SafeAppContext and call pm.hook.on_app_start(app_ctx=...)
+- Subscribe TimerService events:
+  - on_tick -> pm.hook.on_timer_tick(elapsed=..., remaining=..., state=...)
+  - on_cycle_end -> pm.hook.on_cycle_end(session=...)
+- Wrap hook invocations to isolate exceptions per plugin; continue others
+- For GUI, expose a bridge to call provide_settings_ui when assembling settings dialog; skip in headless
+- Acceptance: Integration test verifies hooks receive events and exceptions do not propagate
+
+## 9. Example plugin for docs/tests [pending]
+### Dependencies: 8.1, 8.3, 8.4, 8.5
+### Description: Create a minimal reference plugin demonstrating hooks and metadata.
+### Details:
+- Location: plugins/example_plugin/
+- plugin.toml with:
+  - [plugin] name="example_plugin", version="0.1.0", compatible_with=">=1.0,<2.0"
+  - [access] filesystem=false, network=false, requires_gui=false
+- main.py implementing:
+  - on_app_start logs a message
+  - on_timer_tick counts ticks
+  - provide_settings_ui returns None (headless-safe)
+- Include README snippet for usage
+- Acceptance: Discovery finds it under a temp plugin root and loads it successfully
+
+## 10. Test suite: unit and integration [pending]
+### Dependencies: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9
+### Description: Cover TOML, SemVer, permissions, hooks, GUI gating, and failure isolation.
+### Details:
+- Unit tests:
+  - TOML parsing defaults and validation errors
+  - SemVer compatibility matrix
+  - Permission defaults and deny-on-missing
+- Integration tests:
+  - Temporary plugin dirs loaded; callbacks invoked with correct data
+  - GUI-only plugin skipped when GUI unavailable
+  - Plugin raising exceptions during hooks does not crash; errors logged
+  - Per-plugin logger writes entries; plugin_errors.log created
+- CI-friendly: no real network/filesystem writes beyond temp dirs; use monkeypatch
+- Acceptance: All tests pass across supported platforms
+

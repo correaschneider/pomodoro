@@ -1,0 +1,101 @@
+# Task ID: 5
+# Title: Notifications and overlay visual with fallbacks
+# Status: pending
+# Dependencies: 1, 2, 3, 4
+# Priority: medium
+# Description: Implement notification service with native backends per OS and a Qt overlay fallback, following fallback order: Native → Overlay → Tray/Log.
+# Details:
+Implementation (ADR-010):
+- adapters/notifications/service.py:
+  - NotificationService with method notify(title, message, actions=None, urgency="normal") and convenience methods on_cycle_start/end.
+  - Backend selection at runtime:
+    - Linux: try notify2 (DBus); else fallback
+    - Windows: win10toast; else fallback
+    - macOS: try pync; else fallback to osascript; else overlay
+  - Fallback chain ends with tray.showMessage if available, else logging only.
+- Qt Overlay (adapters/notifications/overlay.py): frameless, translucent, always-on-top QWidget; shows brief message with fade-in/out; respects user prefs (enable/disable).
+Pseudo-code:
+class NotificationService:
+    def __init__(self, tray=None, overlay=None):
+        self._backend = self._choose_backend()
+        self._tray = tray; self._overlay = overlay
+    def _choose_backend(self):
+        try: import notify2; return LinuxNotify2()
+        except Exception: pass
+        try: import win10toast; return WinToast()
+        except Exception: pass
+        try: import pync; return MacPync()
+        except Exception: pass
+        return None
+    def notify(self, title, msg, actions=None):
+        if self._backend:
+            try: self._backend.send(title, msg, actions)
+            except Exception: self._backend=None
+        if not self._backend and self._overlay and self._overlay.enabled:
+            self._overlay.show_message(title, msg)
+        elif self._tray:
+            self._tray.showMessage(title, msg)
+        logging.getLogger("pomodoro.adapters.gui").info("Notification: %s - %s", title, msg)
+- Integrate with TimerService: subscribe to cycle_end to emit notifications; provide action buttons (e.g., Start Break/Next Focus) when backend supports.
+Deliverables: notification service, overlay widget, integration hooks.
+
+# Test Strategy:
+- Unit: mock backends to assert fallback order and action dispatching; simulate backend exception and ensure fallback.
+- Integration: trigger cycle end and verify service invoked; on headless CI, ensure no crash (overlay creation guarded by display availability).
+- Manual: validate appearance and timing across OS; ensure user prefs to disable overlay respected.
+
+# Subtasks:
+## 1. NotificationService API [pending]
+### Dependencies: None
+### Description: Define the NotificationService interface with notify() and convenience methods for cycle start/end.
+### Details:
+Create adapters/notifications/service.py with class NotificationService(tray=None, overlay=None). Methods: notify(title, message, actions=None, urgency="normal"), on_cycle_start(session) and on_cycle_end(session). Actions is an optional list of action descriptors (id,label,callback). Urgency enum or string mapped across backends. Ensure logger name pomodoro.adapters.gui is used. Document thread-safety expectations (notify callable from domain thread; UI interactions must hop to Qt thread). Provide simple no-op defaults for missing tray/overlay. Expose a minimal backend interface contract: send(title, message, actions=None, urgency="normal") -> bool.
+
+## 2. Backend selection logic [pending]
+### Dependencies: 5.3, 5.4, 5.5, 5.1
+### Description: Detect OS and select native notification backend; prepare fallback entry into overlay/tray/log.
+### Details:
+Implement _choose_backend() using sys.platform/platform.system(). Linux: try import notify2 then LinuxNotify2(); Windows: try import win10toast then WinToastBackend(); macOS: try import pync then MacPyncBackend(); if none available return None. Lazy import to avoid hard dependencies. Cache chosen backend; on send() failure set backend to None (to trigger fallbacks). Provide reset method for tests. Include detection/guards for WSL or headless Linux (skip notify2 init if no DBus).
+
+## 3. Linux backend wrapper: notify2 [pending]
+### Dependencies: 5.1
+### Description: Integrate notify2 over DBus with robust initialization and error handling.
+### Details:
+Implement class LinuxNotify2 implementing send(). On first use, call notify2.init(app_name) with try/except for DBus errors. Create notify2.Notification(title, message, icon=None). Map urgency to notify2.URGENCY_LOW/NORMAL/CRITICAL. If actions are provided and library supports them, attach action callbacks via add_action; otherwise ignore gracefully. Use .show() and return True on success. Catch exceptions (e.g., DBusException), log debug, and rethrow or return False to trigger fallback. Avoid blocking; no busy waits.
+
+## 4. Windows backend wrapper: win10toast [pending]
+### Dependencies: 5.1
+### Description: Wrap win10toast for Windows notifications with defensive error handling.
+### Details:
+Implement class WinToastBackend with send(). Instantiate ToastNotifier once. Use show_toast(title, message, duration=5, threaded=True). Note that classic win10toast does not support action buttons; ignore actions. Consider win10toast-click if available, but keep optional. Map urgency to duration or ignore if unsupported. Wrap calls in try/except; return True on success else False. Ensure calls do not block the UI thread.
+
+## 5. macOS backend wrapper: pync and osascript fallback [pending]
+### Dependencies: 5.1
+### Description: Provide macOS notifier using pync, with osascript as library-less fallback.
+### Details:
+Implement class MacPyncBackend with send() trying pync.Notifier.notify(message, title=title). If pync import fails at construction, provide an OsascriptBackend alternative. OsascriptBackend.send() uses subprocess.run(["osascript", "-e", applescript], timeout=2) with escaped strings: display notification "{msg}" with title "{title}". macOS does not support arbitrary action buttons via UserNotifications/osascript; ignore actions. Return True on zero exit code; handle CalledProcessError/TimeoutExpired by returning False. Keep non-blocking and robust.
+
+## 6. Qt overlay widget [pending]
+### Dependencies: 5.1
+### Description: Implement frameless, translucent, always-on-top QWidget overlay with fade animations and prefs.
+### Details:
+Create adapters/notifications/overlay.py with class OverlayWidget(QWidget) exposing enabled property and show_message(title, message). Use Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint; setAttribute(Qt.WA_TranslucentBackground). Build simple layout with title and message labels. Implement fade-in/out via QPropertyAnimation on windowOpacity and a QTimer for auto-close. Support user preferences: enabled flag, display duration, position (e.g., top-right), font/size if available. Provide a lightweight controller wrapper that checks for QApplication instance and display availability; in headless environments, enabled becomes False.
+
+## 7. Fallback logic in notify() [pending]
+### Dependencies: 5.2, 5.6, 5.1
+### Description: Implement robust fallback chain: Native backend → Overlay → Tray.showMessage → Logging.
+### Details:
+In NotificationService.notify(): if backend exists, attempt backend.send(); on exception or False, set backend=None. If no backend and overlay and overlay.enabled, schedule overlay.show_message(...) on the Qt main thread (QMetaObject.invokeMethod or QTimer.singleShot). Else if tray available, call tray.showMessage(title, message, icon, msecs). Always log info with logger. Wrap each step in try/except so a failure in overlay or tray still proceeds to logging without crashing. Optionally degrade urgency mapping for tray. Ignore actions when the chosen sink cannot support them.
+
+## 8. Domain integration with TimerService [pending]
+### Dependencies: 5.7
+### Description: Subscribe to TimerService events and emit user-friendly notifications with optional actions.
+### Details:
+Wire NotificationService to core TimerService: on cycle start/end, call on_cycle_start/end to produce messages like "Focus started" / "Break started" / "Focus ended" with remaining/next hints. Where backend supports actions, provide callbacks such as Start Break, Next Focus, or Dismiss that invoke TimerService methods. Ensure integration is optional via user settings (enable/disable notifications). Add minimal DI/composition in app startup to pass tray and overlay instances into NotificationService.
+
+## 9. Tests and CI guards [pending]
+### Dependencies: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8
+### Description: Unit and integration tests covering fallback order, platform branches, actions, and headless safety.
+### Details:
+Unit: mock backend wrappers to assert order Native→Overlay→Tray→Log; simulate backend exceptions to ensure fallback triggers and backend resets. Platform selection: monkeypatch sys.platform/platform.system to hit Linux/Windows/macOS code paths. macOS osascript: mock subprocess calls. Windows toast: mock ToastNotifier. Linux notify2: mock init and Notification.show. Overlay: pytest-qt to instantiate widget when display available; separate tests ensure overlay controller disables in headless CI (no crash). Integration: simulate TimerService events and verify notifications sent and action callbacks invoked where supported. Ensure deterministic tests with timeouts <=2s.
+

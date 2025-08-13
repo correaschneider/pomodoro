@@ -1,0 +1,72 @@
+# Task ID: 4
+# Title: System tray adapter (QSystemTrayIcon)
+# Status: pending
+# Dependencies: 1, 2, 3
+# Priority: medium
+# Description: Provide system tray icon, context menu actions (start/pause/resume/stop, settings, quit), and live tooltip with current state.
+# Details:
+Implementation (ADR-014):
+- adapters/system_tray/tray.py:
+  - Class TrayController(QSystemTrayIcon) with QMenu actions wired to TimerService.
+  - Actions: Start Focus, Start Break, Pause/Resume toggle, Stop, Open Settings, Show/Hide Window, Quit.
+  - Tooltip shows remaining time and state; update via GuiBridge.state/tick.
+  - Icons from resources; OS-specific nuances: ensure app icon visible on macOS (setWindowIcon, NSApp activation hints if needed).
+  - Ensure app.setQuitOnLastWindowClosed(False) (set in GUI bootstrap).
+Pseudo-code:
+class TrayController(QtWidgets.QSystemTrayIcon):
+    def __init__(self, app, service, main_window):
+        menu = QtWidgets.QMenu()
+        a_start = menu.addAction(_("Start Focus")); a_start.triggered.connect(lambda: service.start_focus(...))
+        a_pause = menu.addAction(_("Pause")); a_pause.triggered.connect(service.pause)
+        a_resume = menu.addAction(_("Resume")); a_resume.triggered.connect(service.resume)
+        a_stop = menu.addAction(_("Stop")); a_stop.triggered.connect(service.stop)
+        a_settings = menu.addAction(_("Settings")); a_settings.triggered.connect(main_window.open_settings)
+        a_quit = menu.addAction(_("Quit")); a_quit.triggered.connect(app.quit)
+        self.setContextMenu(menu)
+    def update_tooltip(state, remaining):
+        self.setToolTip(f"{state.name} – {remaining//60:02d}:{remaining%60:02d}")
+- Wire bridge.tick/state to update tooltip and toggle actions enabled/visible.
+Deliverables: tray module, integrated into app bootstrap; menu accelerators and icons.
+
+# Test Strategy:
+- Integration (pytest-qt): instantiate TrayController; verify actions exist and connected (spy on TimerService methods).
+- Manual cross-OS: verify tray presence and tooltip updates; confirm macOS specifics (menu shown when app has no windows).
+- Logging: capture tray events in pomodoro.adapters.gui logger.
+
+# Subtasks:
+## 1. TrayController base class and menu scaffold [pending]
+### Dependencies: None
+### Description: Create adapters/system_tray/tray.py with TrayController(QSystemTrayIcon), context menu scaffold, and icon setup.
+### Details:
+Implement class TrayController(app: QApplication, service: TimerService, main_window: QMainWindow, bridge: GuiBridge). Create QMenu instance and assign via setContextMenu. Load tray icon from Qt resources (e.g., QIcon(":/icons/app_tray")) and call setIcon + show. Use gettext _() for all user-facing strings. Keep references to QAction objects as instance attributes for later state updates. Optionally connect QSystemTrayIcon.activated to show/hide the menu on click as per platform norms.
+
+## 2. Actions and wiring to TimerService/MainWindow [pending]
+### Dependencies: 4.1
+### Description: Add actions: Start Focus, Start Break, Pause/Resume, Stop, Settings, Show/Hide Window, Quit; connect to services and window.
+### Details:
+Create QActions with icons and accelerators (e.g., Start Focus: Ctrl+Alt+F, Start Break: Ctrl+Alt+B, Pause/Resume: Ctrl+Alt+P, Stop: Ctrl+Alt+S, Settings: Ctrl+,). Wire triggers: service.start_focus(), service.start_break(), service.pause()/service.resume(), service.stop(), main_window.open_settings(), toggle main_window show/hide, and app.quit(). Add separators to group actions logically. Store all actions on self for later enable/disable and label/icon updates. Ensure Quit action always available.
+
+## 3. Live tooltip updates via GuiBridge [pending]
+### Dependencies: 4.1
+### Description: Subscribe to GuiBridge tick/state signals and render tooltip with remaining time and current state.
+### Details:
+Connect to bridge.on_tick(elapsed_s, remaining_s, state) and bridge.on_state(state) signals. Implement update_tooltip(state, remaining_s) that formats as "State – mm:ss" with zero-padded minutes/seconds and localized state labels. Handle IDLE by showing app name and hint (e.g., "Idle – 00:00"). Avoid heavy work in the slot; debounce only if necessary. Ensure thread-safety by emitting/handling signals on the GUI thread.
+
+## 4. State-driven UI toggling for actions [pending]
+### Dependencies: 4.2, 4.3
+### Description: Enable/disable and toggle action visibility/labels based on timer state (running, paused, idle).
+### Details:
+Subscribe to the same bridge state changes and update actions: disable Start actions when running/paused; enable Start actions when idle; Stop enabled when running/paused; implement a single Pause/Resume toggle action that switches text/icon and connected slot between service.pause and service.resume depending on state; Show/Hide Window action label updates based on main_window.isVisible(). Keep icons and tooltips synchronized with current state.
+
+## 5. Cross-OS icon/visibility nuances and logging [pending]
+### Dependencies: 4.1
+### Description: Handle resource loading and platform-specific tray behavior; add namespaced logging.
+### Details:
+Verify QSystemTrayIcon.isSystemTrayAvailable and log/handle absence gracefully. Load icons from Qt resources for all DPI scales; set application/window icon so the tray icon is visible. On macOS: ensure setWindowIcon is called on main window, consider NSApp activation hints if the tray menu should appear when no windows are open, verify the menu is reachable when all windows hidden, and respect app.setQuitOnLastWindowClosed(False) (set in GUI bootstrap). Add logger under pomodoro.adapters.gui or pomodoro.adapters.system_tray; log action triggers and state transitions for diagnostics.
+
+## 6. Tests (pytest-qt) and manual verification checklist [pending]
+### Dependencies: 4.2, 4.3, 4.4, 4.5
+### Description: Write integration tests verifying actions exist and are connected; assert tooltip updates; define manual cross-OS checks.
+### Details:
+Using pytest-qt and qtbot: instantiate TrayController with a fake TimerService (monkeypatched methods) and fake GuiBridge; verify actions by text/shortcut exist; trigger actions and assert corresponding service methods called; simulate tick/state signals and assert tooltip text matches expected formatting; assert Pause/Resume toggles label/slot with state; assert enabled/disabled states per TimerState. Manual checklist: confirm tray icon appears on Windows/macOS/Linux; tooltip updates live; menu items invoke correct behavior; macOS menu available when no windows are open; Show/Hide toggles window correctly; icons/accelerators render as expected.
+

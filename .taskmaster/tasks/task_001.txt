@@ -1,0 +1,162 @@
+# Task ID: 1
+# Title: Project scaffolding, Hexagonal layout, and base logging
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Establish repository structure per ADR-008 and implement centralized logging/observability per ADR-012 with rotating file handlers and namespaced loggers.
+# Details:
+Implementation:
+- Create directories:
+  pomodoro_app/{core,adapters/{gui,system_tray,notifications,cli},infrastructure/{db,i18n,config,update},plugin_manager,plugins,tests/{unit,integration},resources/locales,docs/adrs}
+- pyproject.toml (PEP 621):
+  - Requires Python >=3.12
+  - Dependencies: PySide6, pluggy, packaging, tomli-w (if needed), platformdirs (optional), pytest, pytest-qt, black, ruff, pip-audit, notify2;win10toast; (mark OS backends as optional extras), babel (for i18n tooling) if desired
+  - Entry point: pomodoro_app.__main__:main
+- Implement infrastructure/logging.py:
+  - setup_logging(app_name="pomodoro_app") -> None
+  - Create logs directory in user data dir (e.g., ~/.local/share/Pomodoro App/logs or platform-appropriate) using platformdirs or custom
+  - Configure logging with RotatingFileHandler for app.log, events.log, plugin_errors.log
+  - Logger names: pomodoro.core, pomodoro.adapters.gui, pomodoro.infrastructure.db, plugin.<name>
+  - JSON-ish or standard formatter with timestamp, level, name, message
+  Pseudo-code:
+  def setup_logging():
+      log_dir = get_app_data_dir()/"logs"
+      log_dir.mkdir(parents=True, exist_ok=True)
+      fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+      files = {"app.log": ["pomodoro"], "events.log": ["pomodoro.core"], "plugin_errors.log": ["plugin"]}
+      for fname, namespaces in files.items():
+          h = RotatingFileHandler(log_dir/fname, maxBytes=1_000_000, backupCount=5, encoding="utf-8")
+          h.setFormatter(fmt)
+          for ns in namespaces:
+              lg = logging.getLogger(ns)
+              lg.setLevel(logging.INFO)
+              lg.addHandler(h)
+      logging.captureWarnings(True)
+- Add __main__.py to bootstrap logging and app startup
+- Conventions: semantic commits, ruff/black configs, pytest.ini with qt_api=pyside6
+Deliverables: directory layout, pyproject, logging module, basic bootstrap.
+
+# Test Strategy:
+- Unit: test_logging_setup creates log files, rotates at size threshold (patch maxBytes small), writes to correct namespaces.
+- Lint: run ruff/black in CI locally.
+- Integration smoke: run python -m pomodoro_app to ensure no exceptions and log files are generated.
+- Validate logger names and file separation by emitting test logs from each namespace.
+
+# Subtasks:
+## 1. Repository layout per ADR-008 [pending]
+### Dependencies: None
+### Description: Create the hexagonal/ports-adapters repository structure with Python packages and placeholders.
+### Details:
+- Create directories:
+  pomodoro_app/{core,adapters/{gui,system_tray,notifications,cli},infrastructure/{db,i18n,config,update},plugin_manager,plugins,tests/{unit,integration},resources/locales,docs/adrs}
+- Add __init__.py files for all Python packages: pomodoro_app, core, adapters and its subpackages, infrastructure and its subpackages, plugin_manager, plugins.
+- Add placeholder README.md files where helpful (e.g., docs/adrs/README.md).
+- Ensure tests directories exist with conftest.py placeholders if needed.
+Acceptance criteria:
+- Import succeeds: python -c "import pomodoro_app" returns 0.
+- The directory tree matches the specified layout and all package dirs contain __init__.py.
+- docs/adrs directory present for ADR-008 and ADR-012 references.
+
+## 2. pyproject.toml with PEP 621 metadata and dependencies [pending]
+### Dependencies: 1.1
+### Description: Define project metadata, Python version, runtime and optional dependencies, and entry point.
+### Details:
+- Use PEP 621 in pyproject.toml with name 'pomodoro-app' (distribution) and package 'pomodoro_app'.
+- Requires Python >=3.12.
+- Runtime deps: PySide6, pluggy, packaging, platformdirs, (optionally) tomli-w if needed; i18n tooling (babel) can be dev-only.
+- Optional extras:
+  - notifications: notify2; sys_platform == 'linux'
+  - win_toast: win10toast; sys_platform == 'win32'
+- Dev extras: pytest, pytest-qt, black, ruff, pip-audit, babel (if used).
+- Entry point:
+  [project.scripts]
+  pomodoro-app = "pomodoro_app.__main__:main"
+- Choose a build backend (e.g., setuptools) compatible with PEP 621.
+Acceptance criteria:
+- pip install -e .[dev] succeeds on a clean environment.
+- pip install -e .[notifications,win_toast] resolves platform-specific extras without errors.
+- Entry point declared for pomodoro-app (will be exercised in bootstrap subtask).
+
+## 3. Developer tooling and conventions [pending]
+### Dependencies: 1.1, 1.2
+### Description: Configure ruff/black, pytest.ini, semantic commits guide, and .gitignore.
+### Details:
+- Configure ruff (tool.ruff) and black (tool.black) either in pyproject.toml or separate config files; include line-length and target Python 3.12.
+- Add pytest.ini with qt_api = pyside6 and useful defaults (testpaths = tests).
+- Create .gitignore covering Python, venvs, build artifacts, logs/, .pytest_cache, .ruff_cache, .mypy_cache.
+- Add CONTRIBUTING.md or docs/semantic_commits.md describing semantic commit message format.
+- Optionally add a basic pre-commit config referencing ruff/black (informational, not required).
+Acceptance criteria:
+- ruff . and black --check . run without crashing on a fresh checkout.
+- pytest -q collects tests (even if zero at this stage) without configuration errors.
+- Documentation for commit conventions exists in repo.
+
+## 4. Centralized logging module per ADR-012 [pending]
+### Dependencies: 1.1, 1.2
+### Description: Implement infrastructure/logging.py with setup_logging(app_name) and rotating file handlers.
+### Details:
+- File: pomodoro_app/infrastructure/logging.py
+- Function: setup_logging(app_name: str = "pomodoro_app") -> None
+- Determine log directory using platformdirs.user_data_dir(app_name, None) / "logs"; create parents.
+- Configure format: timestamp, level, logger name, message (JSON-ish or standard, e.g., "%(asctime)s %(levelname)s %(name)s: %(message)s").
+- Create RotatingFileHandler for each:
+  - app.log attached to namespace 'pomodoro'
+  - events.log attached to namespace 'pomodoro.core'
+  - plugin_errors.log attached to namespace 'plugin'
+  maxBytes=1_000_000, backupCount=5, encoding="utf-8".
+- Set default level INFO on configured loggers; ensure idempotency (avoid duplicate handlers on repeated setup).
+- Enable logging.captureWarnings(True).
+- Cross-platform: verify directories resolve correctly on Linux (~/.local/share/<App>/logs), macOS, and Windows.
+Acceptance criteria:
+- Calling setup_logging() creates the logs directory and the three log files on all major OSes.
+- Handlers are rotating with configured size/backups.
+- Repeated calls do not duplicate handlers (no duplicate log lines).
+- Warnings are captured into app.log.
+
+## 5. Namespaced loggers and usage documentation [pending]
+### Dependencies: 1.4
+### Description: Establish logger naming conventions and document how to use them across layers and plugins.
+### Details:
+- Logger namespaces:
+  - pomodoro.core (domain/services)
+  - pomodoro.adapters.gui, .system_tray, .notifications, .cli
+  - pomodoro.infrastructure.db, .i18n, .config, .update
+  - plugin.<plugin_name>
+- Set sensible defaults (INFO) and recommend DEBUG for local dev via environment variable override.
+- Provide helper function or snippet demonstrating acquiring namespaced loggers and emitting messages.
+- Document in docs/observability.md (or README section) how messages route to app.log, events.log, plugin_errors.log, and how propagation may cause parent file capture.
+Acceptance criteria:
+- Minimal script using these logger names writes to expected files after setup_logging().
+- Documentation exists showing examples and mapping from namespaces to log files.
+
+## 6. Application bootstrap (__main__.py) [pending]
+### Dependencies: 1.2, 1.4, 1.5
+### Description: Add __main__.py to initialize logging then start a minimal app stub.
+### Details:
+- File: pomodoro_app/__main__.py
+- Implement main():
+  - Call setup_logging(app_name="pomodoro_app").
+  - Log a startup message via pomodoro adapters/core loggers.
+  - Provide a '--smoke' flag that emits sample logs to each namespace and exits 0.
+  - Placeholder for future GUI/CLI startup (no GUI launch yet).
+- Ensure module is runnable with python -m pomodoro_app and via the console script entry point.
+Acceptance criteria:
+- python -m pomodoro_app runs without exception and creates log files.
+- python -m pomodoro_app --smoke writes messages to app.log, events.log, and plugin_errors.log and exits with code 0.
+
+## 7. Logging tests and smoke verification [pending]
+### Dependencies: 1.1, 1.2, 1.4, 1.6
+### Description: Add unit tests for log directory creation, rotation, and namespace routing; provide a smoke test.
+### Details:
+- tests/unit/test_logging.py:
+  - Use a temporary directory by monkeypatching platformdirs to ensure isolation.
+  - Call setup_logging(); assert logs dir and app.log/events.log/plugin_errors.log exist.
+  - Patch RotatingFileHandler maxBytes small to force rotation; write enough bytes; assert .1 backup exists.
+  - Emit records via pomodoro.core and plugin.<name>; assert they appear in events.log and plugin_errors.log respectively (and optionally in app.log due to propagation).
+- tests/integration/test_smoke.py:
+  - Run python -m pomodoro_app --smoke in a subprocess; assert exit code 0 and log files created.
+- Ensure tests pass cross-platform (Linux/macOS/Windows) and avoid hardcoded paths.
+Acceptance criteria:
+- All tests pass locally (pytest -q) with the above behaviors.
+- Smoke command produces expected log outputs and rotated files when thresholds are met.
+

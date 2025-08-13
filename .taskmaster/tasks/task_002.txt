@@ -1,0 +1,131 @@
+# Task ID: 2
+# Title: Core timer domain and use-cases
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Implement the Pomodoro domain with states and transitions independent from GUI, emitting events for ticks and cycle changes.
+# Details:
+Implementation (ADR-001):
+- Models (core/models.py):
+  - Enum SessionType {FOCUS, BREAK}
+  - Enum TimerState {IDLE, RUNNING_FOCUS, RUNNING_BREAK, PAUSED}
+  - dataclass Session(id, type, duration_s, started_at, ended_at, state)
+- Ports (core/ports.py):
+  - class TimerPort(Protocol): start_focus(dur_s), start_break(dur_s), pause(), resume(), stop()
+  - Event callbacks to be registered: on_tick(elapsed_s, remaining_s, state), on_cycle_end(session: Session)
+- Service (core/timer_service.py):
+  - TimerService with injected clock (time.monotonic) and scheduler (thread/Qt-agnostic)
+  - Default durations: focus=25*60, break=5*60 (configurable via Settings later)
+  - Observer registry for callbacks
+  - Single-threaded loop using threading and monotonic to avoid drift
+Pseudo-code:
+class TimerService:
+    def __init__(self, tick_interval=1.0, logger=None):
+        self.state = TimerState.IDLE
+        self._tick_interval = tick_interval
+        self._callbacks = {"tick": set(), "cycle_end": set(), "state": set()}
+        self._lock = threading.RLock()
+        self._thread = None
+        self._remaining = 0
+        self._current_session = None
+    def on(self, event, cb): self._callbacks[event].add(cb)
+    def _emit(self, event, *a):
+        for cb in list(self._callbacks[event]):
+            try: cb(*a)
+            except Exception as e: logging.getLogger("pomodoro.core").exception("callback error")
+    def _run_loop(self):
+        last = time.monotonic()
+        while self.state in (TimerState.RUNNING_FOCUS, TimerState.RUNNING_BREAK, TimerState.PAUSED):
+            time.sleep(self._tick_interval)
+            now = time.monotonic()
+            if self.state == TimerState.PAUSED: last = now; continue
+            delta = now - last; last = now
+            with self._lock:
+                self._remaining = max(0, self._remaining - delta)
+                self._emit("tick", int(self._elapsed()), int(self._remaining), self.state)
+                if self._remaining <= 0:
+                    self._finish_cycle()
+                    break
+    def start_focus(self, dur_s): return self._start(SessionType.FOCUS, dur_s)
+    def start_break(self, dur_s): return self._start(SessionType.BREAK, dur_s)
+    def _start(self, type_, dur_s):
+        with self._lock:
+            self._current_session = Session(id=uuid4(), type=type_, duration_s=dur_s, started_at=datetime.now(), ended_at=None, state="running")
+            self.state = TimerState.RUNNING_FOCUS if type_==SessionType.FOCUS else TimerState.RUNNING_BREAK
+            self._remaining = dur_s
+            self._spawn_thread()
+            self._emit("state", self.state)
+    def pause(self): self.state = TimerState.PAUSED; self._emit("state", self.state)
+    def resume(self): self.state = TimerState.RUNNING_FOCUS if self._current_session.type==SessionType.FOCUS else TimerState.RUNNING_BREAK; self._emit("state", self.state)
+    def stop(self): self._finish_cycle(cancelled=True)
+    def _finish_cycle(self, cancelled=False):
+        self._current_session.ended_at = datetime.now()
+        self.state = TimerState.IDLE
+        self._emit("cycle_end", self._current_session)
+        self._emit("state", self.state)
+- Expose domain errors and guard reentrancy.
+- Integrate logging namespace pomodoro.core.
+Deliverables: core models, ports, service with tests stubs.
+
+# Test Strategy:
+- Unit: simulate focus/break cycles with tick_interval=0.01 to accelerate; assert transitions and callbacks order.
+- Unit: pause/resume preserves remaining time within tolerance.
+- Unit: stop triggers cycle_end with cancelled flag and IDLE state.
+- Property tests: elapsed+remaining ≈ duration within drift bounds.
+- Concurrency: ensure methods thread-safe (no race) with multiple pause/resume calls.
+
+# Subtasks:
+## 1. Models: SessionType, TimerState, Session dataclass [pending]
+### Dependencies: None
+### Description: Define core enums and the Session data model for the Pomodoro domain.
+### Details:
+Create core/models.py with: Enum SessionType {FOCUS, BREAK}; Enum TimerState {IDLE, RUNNING_FOCUS, RUNNING_BREAK, PAUSED}; dataclass Session(id: UUID, type: SessionType, duration_s: int, started_at: datetime|None, ended_at: datetime|None, state: str). Use state values: 'running'|'finished'|'cancelled'. Provide __repr__ and validation helpers for duration_s > 0. Ensure models are GUI-agnostic and serializable-friendly.
+
+## 2. Ports: TimerPort Protocol and event callback registry [pending]
+### Dependencies: 2.1
+### Description: Define the domain port for timer operations and event callback signatures.
+### Details:
+Create core/ports.py with Protocol TimerPort: start_focus(dur_s: int) -> None, start_break(dur_s: int) -> None, pause() -> None, resume() -> None, stop() -> None. Define event callback types: OnTick(elapsed_s: int, remaining_s: int, state: TimerState) and OnCycleEnd(session: Session). Define an observer registration API: on(event: Literal['tick','cycle_end','state'], cb: Callable) -> None and off(event, cb) -> None. Keep ports independent from any GUI/threading framework.
+
+## 3. TimerService skeleton and construction [pending]
+### Dependencies: 2.1, 2.2
+### Description: Implement TimerService base with injected clock/sleeper, tick interval, and logging namespace.
+### Details:
+Create core/timer_service.py with class TimerService(TimerPort). __init__(tick_interval: float = 1.0, clock: Callable[[], float] = time.monotonic, sleeper: Callable[[float], None] = time.sleep, logger: logging.Logger|None = None). Initialize state=TimerState.IDLE, default durations focus=25*60, break=5*60, observer registry {'tick': set(), 'cycle_end': set(), 'state': set()}, RLock, worker thread handle, remaining seconds, current_session=None. Use logging.getLogger('pomodoro.core') by default.
+
+## 4. Threaded loop: monotonic-based ticking with pause handling [pending]
+### Dependencies: 2.3
+### Description: Implement the single-threaded run loop using monotonic time, minimizing drift and handling pause.
+### Details:
+Implement _run_loop(): use last=self.clock(); loop while state in {RUNNING_FOCUS, RUNNING_BREAK, PAUSED}; call sleeper(tick_interval); now=self.clock(); if PAUSED: last=now; continue; delta=now-last; last=now; under lock, decrement remaining = max(0, remaining - delta); emit tick with int(elapsed), int(remaining), current state; if remaining <= 0, call _finish_cycle() and break. Provide _elapsed() helper returning duration_s - remaining. Ensure drift minimization by basing on monotonic delta rather than tick_interval.
+
+## 5. API methods with state/reentrancy guards [pending]
+### Dependencies: 2.3, 2.4
+### Description: Implement start_focus/break, pause, resume, stop with validation and guards.
+### Details:
+Implement start_focus(dur_s:int) and start_break(dur_s:int) delegating to _start(type, dur_s). Validate dur_s>0. Only allow start when state==IDLE; otherwise raise AlreadyRunningError. _start: under lock, create Session(id=uuid4(), type, duration_s=dur_s, started_at=now, ended_at=None, state='running'); set state to RUNNING_FOCUS or RUNNING_BREAK; set remaining=dur_s; spawn worker thread if not alive; emit 'state'. pause(): only when RUNNING_*; set state=PAUSED; emit 'state'. resume(): only when PAUSED; restore state to RUNNING_* based on session.type; emit 'state'. stop(): valid when RUNNING_* or PAUSED; call _finish_cycle(cancelled=True). Make these methods idempotent where reasonable (e.g., repeated pause raises AlreadyPausedError or becomes no-op by design decision).
+
+## 6. Event emission and safe callback execution [pending]
+### Dependencies: 2.3, 2.2, 2.5
+### Description: Implement observer registry, event emission for tick/cycle_end/state, and error-safe callbacks.
+### Details:
+Provide on(event, cb) and off(event, cb) methods managing sets per event: 'tick','cycle_end','state'. Implement _emit(event, *args) that iterates a snapshot of callbacks and wraps each call in try/except, logging exceptions to 'pomodoro.core' without breaking the loop. Emit 'tick' on each loop iteration; emit 'cycle_end' with Session on completion or cancellation; emit 'state' on each state change including transitions to/from PAUSED and to IDLE.
+
+## 7. Concurrency, thread lifecycle, and idempotency [pending]
+### Dependencies: 2.3, 2.4, 2.5, 2.6
+### Description: Harden concurrency aspects with RLock, thread spawning/joining, cancellation semantics, and idempotent operations.
+### Details:
+Use threading.RLock to guard shared state (state, remaining, current_session). Implement _spawn_thread() that starts a daemon thread if not alive; ensure only one worker exists. On _finish_cycle(cancelled: bool=False): set session.ended_at=now; set session.state='cancelled' if cancelled else 'finished'; transition service state to IDLE; emit 'cycle_end' then 'state'. Ensure stop() triggers thread exit and join with timeout in a non-blocking safe manner if needed. Make stop() idempotent and safe when already IDLE (either no-op or raise AlreadyIdleError per chosen contract). Ensure pause/resume are race-safe and do not lose ticks; updating 'last' timestamp in loop avoids jump on resume.
+
+## 8. Domain errors and validation rules [pending]
+### Dependencies: 2.1, 2.5, 2.7
+### Description: Define exception classes and enforce validation rules across API methods.
+### Details:
+Create core/errors.py with exceptions: InvalidDurationError, AlreadyRunningError, NotRunningError, AlreadyPausedError, AlreadyIdleError, InvalidStateTransitionError. Use these in TimerService methods for guards (e.g., start_* when not IDLE -> AlreadyRunningError; pause when not RUNNING_* -> NotRunningError; resume when not PAUSED -> InvalidStateTransitionError; stop when IDLE -> AlreadyIdleError). Validate dur_s > 0 else InvalidDurationError. Export errors via core.__all__ and document usage.
+
+## 9. Tests: ticks, transitions, pause/resume, stop, properties, races [pending]
+### Dependencies: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8
+### Description: Implement unit and property tests for timing accuracy, state transitions, events, and concurrency edge cases.
+### Details:
+Use pytest (and hypothesis for properties). Configure accelerated runs with tick_interval=0.01. Tests: start_focus/break produce ticks and end with cycle_end; ordering: 'state'→first 'tick'→...'cycle_end'→'state(IDLE)'. Pause/resume preserves remaining within small tolerance; no tick emission during paused period. stop() emits cycle_end with session.state='cancelled' and sets service state to IDLE. Property: for random durations, invariant int(elapsed)+int(remaining) ≈ duration within 1s. Reentrancy: starting while running raises AlreadyRunningError; pause when paused raises AlreadyPausedError, etc. Concurrency/race: stress with rapid pause/resume/stop from multiple threads; ensure no deadlocks and thread terminates. Mock/monkeypatch clock/sleeper where needed; verify logging does not raise on callback exceptions.
+

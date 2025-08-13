@@ -1,0 +1,88 @@
+# Task ID: 3
+# Title: PySide6 GUI main window and controls
+# Status: pending
+# Dependencies: 1, 2
+# Priority: high
+# Description: Build the main window with start/pause/resume/stop controls, timer display, and settings entry point; integrate with TimerService via ports.
+# Details:
+Implementation (ADR-005):
+- adapters/gui/app.py: QApplication bootstrap, install translator later, setQuitOnLastWindowClosed(False) for tray use.
+- adapters/gui/main_window.py:
+  - QMainWindow with QLabel timer, QPushButtons (Start, Pause/Resume, Stop), Settings action, StatusBar.
+  - Use Qt signals/slots to call TimerService methods via a controller.
+  - Render current state and remaining time every tick using Qt signal emitted from domain thread (use QObject bridge with queued connections).
+- Infrastructure glue: a GuiController bridges TimerService and UI with thread-safe signal emission.
+- I18n placeholders: wrap strings with _ = gettext.gettext; final locale loading in Task 7.
+- Clean shutdown: on closeEvent, do not quit app if tray enabled; emit signal for graceful stop.
+Pseudo-code:
+class GuiBridge(QtCore.QObject):
+    tick = QtCore.Signal(int, int, object)  # elapsed, remaining, state
+    state = QtCore.Signal(object)
+bridge = GuiBridge()
+service.on("tick", lambda e,r,s: QtCore.QMetaObject.invokeMethod(bridge, lambda: bridge.tick.emit(e,r,s), Qt.QueuedConnection))
+
+class MainWindow(QMainWindow):
+    def __init__(self, service):
+        self.startBtn.clicked.connect(lambda: service.start_focus(self._focus_secs()))
+        self.pauseBtn.clicked.connect(service.pause)
+        self.resumeBtn.clicked.connect(service.resume)
+        self.stopBtn.clicked.connect(service.stop)
+        bridge.tick.connect(self._on_tick)
+        bridge.state.connect(self._on_state)
+- Settings dialog stub: durations, overlay, sounds, language (actual persistence wired in Task 6/7).
+Deliverables: runnable GUI wired to domain, basic settings stub, thread-safe updates.
+
+# Test Strategy:
+- Integration (pytest-qt): launch QApplication and MainWindow; simulate button clicks; assert bridge signals received and labels update.
+- Unit: formatting function for mm:ss; verify states toggle Pause/Resume button.
+- Manual: verify responsiveness and event loop performance on Windows/Linux/macOS.
+
+# Subtasks:
+## 1. App bootstrap (adapters/gui/app.py) with translator hook [pending]
+### Dependencies: None
+### Description: Create QApplication bootstrap, configure high-DPI, logging, and setQuitOnLastWindowClosed(False). Provide entry points to build and show MainWindow later.
+### Details:
+Implement adapters/gui/app.py with: (1) create_app(argv=None) -> QApplication: set high-DPI attributes if needed, instantiate QApplication, set application name/org, setQuitOnLastWindowClosed(False), basic logger setup. (2) translator hook: define a no-op install_translator(gettext_func) to be replaced in Task 7; wrap UI strings using _ = gettext.gettext. (3) run(service, tray_enabled=False): constructs MainWindow via factory/controller, shows it, and starts app.exec(). Ensure app.aboutToQuit is available for graceful shutdown wiring later.
+
+## 2. Thread-safe GUI bridge (QObject signals) [pending]
+### Dependencies: 3.1
+### Description: Implement GuiBridge with tick/state signals and thread-safe emission from domain threads using QueuedConnection.
+### Details:
+Create adapters/gui/bridge.py: class GuiBridge(QtCore.QObject) with QtCore.Signal definitions: tick = Signal(int, int, object) for (elapsed, remaining, state), state = Signal(object) for state-only updates. Provide attach_service(service) that subscribes to service.on('tick'/'state') and forwards events via QtCore.QMetaObject.invokeMethod(self, lambda: self.tick.emit(...), Qt.QueuedConnection). Add detach_service() for cleanup. Expose a property is_attached and optional error signal for domain exceptions.
+
+## 3. MainWindow UI layout and actions [pending]
+### Dependencies: 3.1, 3.2
+### Description: Build QMainWindow with timer label, Start/Pause-Resume/Stop buttons, Settings action, and StatusBar. Prepare slots for bridge updates.
+### Details:
+Implement adapters/gui/main_window.py: class MainWindow(QMainWindow). Central widget with QVBoxLayout: large QLabel for time (monospace, scalable), horizontal button row: Start, Pause/Resume (single toggle button initially labeled 'Pause'), Stop. Menu or toolbar with QAction 'Settings…'. StatusBar to display current state and hints. Define slots _on_tick(elapsed, remaining, state) and _on_state(state) to update label and UI. Wrap visible strings with _(). Provide signals like openSettingsRequested. Do not yet wire business logic; leave button clicked signals exposed for controller in subtask 4.
+
+## 4. Controller wiring to TimerService and Pause/Resume toggle [pending]
+### Dependencies: 3.2, 3.3
+### Description: Implement GuiController to connect UI signals to TimerService methods and keep Pause/Resume button/state in sync with service state.
+### Details:
+Create adapters/gui/controller.py: class GuiController(service, bridge, window, settings_provider=None). Connect window.startBtn to service.start_focus(duration) where duration comes from settings_provider or a default. Wire pauseBtn/resume semantics: single toggle button—on click, call service.pause() or service.resume() depending on current state; update text between _('Pause') and _('Resume'). Wire stopBtn to service.stop(). Connect bridge.tick/state to window._on_tick/_on_state and update enabled/disabled state of buttons based on domain state (Idle/Running/Paused). Handle errors with logging and optional message in StatusBar. Expose setup() and teardown() methods.
+
+## 5. Time formatting utility (mm:ss) with unit tests [pending]
+### Dependencies: None
+### Description: Provide a reusable mm:ss formatter for remaining time and add unit tests for edge cases.
+### Details:
+Add adapters/gui/utils.py with function format_mmss(total_seconds: int) -> str that clamps negatives to 0, rounds toward zero, and formats minutes and seconds as mm:ss (e.g., 0->'00:00', 5->'00:05', 65->'01:05', 3600->'60:00'). Include tests in tests/unit/test_format_mmss.py covering negatives, small numbers, minute boundaries, and large values. MainWindow will use this in _on_tick once available.
+
+## 6. Settings dialog stub (no persistence) [pending]
+### Dependencies: 3.3
+### Description: Add a QDialog to collect durations, overlay, sounds, and language; open from MainWindow Settings action.
+### Details:
+Create adapters/gui/settings_dialog.py: class SettingsDialog(QDialog) with QFormLayout: QSpinBox focus_minutes, short_break_minutes, long_break_minutes (ranges 1–180), QCheckBox enable_overlay, QCheckBox enable_sounds, QComboBox language (codes, placeholders). Include QDialogButtonBox OK/Cancel. Provide methods values() -> dict and set_values(defaults). In MainWindow, connect Settings QAction to show the dialog (modal) and emit a signal with chosen values; no persistence or live language switch yet (handled in Task 7).
+
+## 7. Graceful shutdown and tray-aware closeEvent [pending]
+### Dependencies: 3.1, 3.3, 3.4
+### Description: Implement closeEvent to hide instead of quitting when tray is enabled and emit a signal to request service stop on app quit.
+### Details:
+In MainWindow, add init parameter tray_enabled: bool. Override closeEvent: if tray_enabled, event.ignore(); self.hide(); update StatusBar. Otherwise, proceed to close. Ensure app.setQuitOnLastWindowClosed(False) from subtask 1 is honored. Add a Qt signal requestStop for clean shutdown; in GuiController/setup, connect QApplication.instance().aboutToQuit to service.stop and any necessary bridge detach. Ensure resources/signals are disconnected in teardown().
+
+## 8. Integration tests (pytest-qt) and basic logging [pending]
+### Dependencies: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7
+### Description: Write pytest-qt tests to simulate button clicks and assert label/state updates via bridge; add basic logging hooks and assertions.
+### Details:
+Add tests/integration/test_main_window.py using qtbot: construct QApplication, MainWindow, GuiBridge, and a FakeTimerService exposing start_focus/pause/resume/stop and custom on(event, cb). Simulate clicks (Start, Pause/Resume, Stop); emit bridge.tick/state to mimic domain thread and assert label shows format_mmss(remaining) and Pause/Resume text toggles. Verify closeEvent hides when tray_enabled=True. Add logging for GUI actions using logger 'pomodoro.adapters.gui'; in tests, capture logs to ensure key transitions are logged without errors.
+

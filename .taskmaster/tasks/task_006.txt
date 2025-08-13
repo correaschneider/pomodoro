@@ -1,0 +1,88 @@
+# Task ID: 6
+# Title: SQLite persistence and repositories
+# Status: pending
+# Dependencies: 1, 2
+# Priority: high
+# Description: Create SQLite database, schema, and repositories to store sessions, settings, stats; integrate with domain events.
+# Details:
+Implementation (ADR-003):
+- infrastructure/db/connection.py:
+  - get_db_path() in user data dir; create directories
+  - sqlite3.connect(path, check_same_thread=False, isolation_level=None) and return connection; enable WAL pragma for robustness
+- infrastructure/db/schema.py:
+  - DDL for tables (if not exists):
+    sessions(id TEXT PK, type TEXT, duration_s INT, started_at TEXT, ended_at TEXT, state TEXT)
+    settings(key TEXT PK, value TEXT)
+    stats cache optional (or compute on demand)
+- infrastructure/db/repositories.py:
+  - SessionRepository: add(session), list_by_period(start,end), last_n(n)
+  - SettingsRepository: get(key, default), set(key, value)
+  - StatsService: compute totals from sessions (total focus time, interruptions)
+- Integration: subscribe to TimerService cycle_end to persist Session; load Settings on app start to configure durations, overlay, language.
+- Logging via pomodoro.infrastructure.db.
+Pseudo-code:
+class SessionRepository:
+    def add(self, s: Session):
+        cur = conn.execute("INSERT INTO sessions VALUES (?,?,?,?,?,?)", (s.id, s.type.name, s.duration_s, s.started_at.isoformat(), s.ended_at.isoformat(), s.state))
+class SettingsRepository:
+    def get(self, key, default=None):
+        row = conn.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
+        return json.loads(row[0]) if row else default
+    def set(self, key, value):
+        conn.execute("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key, json.dumps(value)))
+Deliverables: schema creation on first run, repositories, wiring to app startup/shutdown.
+
+# Test Strategy:
+- Unit: create temp DB; ensure schema created; insert and retrieve sessions and settings; compute stats over sample data.
+- Integration: run a full focus cycle and confirm a Session row persisted; change durations in settings and verify TimerService uses them.
+- Concurrency: simulate quick successive writes; verify no deadlocks with WAL and proper commits.
+
+# Subtasks:
+## 1. DB path and connection setup [pending]
+### Dependencies: None
+### Description: Implement database path discovery in user data directory, ensure directories exist, and create a configured SQLite connection.
+### Details:
+Files: infrastructure/db/connection.py. Implement get_db_path() to return a platform-specific user data dir path (e.g., using platformdirs) under a pomodoro app folder, and ensure parent directories are created. Implement get_connection(path=None) that resolves the DB path, opens sqlite3.connect(path, check_same_thread=false, isolation_level=None), configures PRAGMA journal_mode=WAL, PRAGMA synchronous=NORMAL, PRAGMA foreign_keys=ON, PRAGMA busy_timeout=5000, and returns the connection. Provide a close_connection() util if a global connection is managed. Expose a small contextmanager for explicit transactions (BEGIN; COMMIT/ROLLBACK) when needed.
+
+## 2. Schema DDL creation [pending]
+### Dependencies: 6.1
+### Description: Create schema and ensure tables exist on first run for sessions and settings; optional stats cache.
+### Details:
+Files: infrastructure/db/schema.py. Implement create_schema(conn) with DDL: CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY, type TEXT NOT NULL, duration_s INTEGER NOT NULL, started_at TEXT NOT NULL, ended_at TEXT, state TEXT NOT NULL); CREATE INDEX IF NOT EXISTS idx_sessions_started_at ON sessions(started_at); CREATE INDEX IF NOT EXISTS idx_sessions_type ON sessions(type). CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL). Optionally create a stats_cache table if needed later. Ensure idempotent calls and run after obtaining a connection. Consider a simple schema_version table for future migrations (insert version 1 if absent).
+
+## 3. SessionRepository implementation [pending]
+### Dependencies: 6.1, 6.2
+### Description: Provide repository to insert and query Session records.
+### Details:
+Files: infrastructure/db/repositories.py. Class SessionRepository with constructor(conn, logger). Methods: add(session) inserting (id, type.name, duration_s, started_at.isoformat(), ended_at?.isoformat(), state) using parameterized SQL; list_by_period(start: datetime, end: datetime) returning domain Session objects filtered by started_at >= start and < end; last_n(n: int) ordering by started_at DESC LIMIT n. Ensure proper ISO 8601 serialization/deserialization, and handle None ended_at. Add minimal input validation and convert enum/string types appropriately.
+
+## 4. SettingsRepository with JSON serialization [pending]
+### Dependencies: 6.1, 6.2
+### Description: Provide repository to get/set settings with JSON-encoded values and upsert behavior.
+### Details:
+Files: infrastructure/db/repositories.py. Class SettingsRepository with constructor(conn, logger). Methods: get(key: str, default=None) -> Any reading SELECT value FROM settings WHERE key=? and returning json.loads(row[0]) if present else default; set(key: str, value: Any) persisting json.dumps(value) via INSERT ... ON CONFLICT(key) DO UPDATE SET value=excluded.value. Optional list_all() for debugging. Validate JSON serialization errors and log appropriately.
+
+## 5. StatsService computations [pending]
+### Dependencies: 6.3
+### Description: Compute totals and basic statistics from sessions via queries.
+### Details:
+Files: infrastructure/db/repositories.py (or separate infrastructure/db/stats.py). Class StatsService with constructor(session_repo, conn, logger). Methods: totals_by_type(start, end) -> {FOCUS: seconds, BREAK: seconds}; count_completed_and_cancelled(start, end); streaks/recent_summary(); daily_totals(start, end) grouping by date(started_at). Define interruption as non-completed/cancelled focus sessions (state not completed) and expose count_interruptions(start, end). Prefer SQL aggregates for performance and fallback to repository iteration when simpler.
+
+## 6. Application wiring and domain event integration [pending]
+### Dependencies: 6.3, 6.4
+### Description: Subscribe to TimerService events to persist sessions and load settings at startup to configure defaults.
+### Details:
+Files: adapters composition root or app startup module. On app start: initialize connection (6.1), create schema (6.2), instantiate repositories (6.3/6.4), and read settings to configure TimerService defaults (focus/break durations, overlay, language). Subscribe to TimerService on_cycle_end(session) to call SessionRepository.add(session). Ensure graceful shutdown closes connection. Handle missing settings by applying sensible defaults and writing them on first run.
+
+## 7. Logging and error handling for DB layer [pending]
+### Dependencies: 6.1, 6.2, 6.3, 6.4
+### Description: Add structured logging and robust error handling across DB, schema, repositories, and wiring.
+### Details:
+Namespace: pomodoro.infrastructure.db. Configure logger and add debug logs for connection open/close, schema creation, SQL operations timing (optional). Wrap DB operations with try/except to log exceptions (include SQL and params when safe) and rethrow as domain-specific exceptions where appropriate. Ensure busy_timeout and WAL reduce 'database is locked' errors; on OperationalError, include guidance in logs. Add safe guards to never log sensitive values stored in settings.
+
+## 8. Tests: unit, integration, concurrency [pending]
+### Dependencies: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7
+### Description: Write tests for schema, repositories, stats, and integration with TimerService; include basic concurrency checks.
+### Details:
+Unit: create temp DB, run create_schema, assert tables and indices exist. Test SessionRepository.add/list_by_period/last_n with sample data and ISO timestamps. Test SettingsRepository.get/set round-tripping various JSON types. Test StatsService totals and interruptions over controlled datasets. Integration: wire a minimal TimerService stub to emit cycle_end and verify a Session row is persisted; load settings on startup and confirm TimerService reads them. Concurrency: simulate parallel inserts/reads using threads to validate WAL+busy_timeout behavior and absence of deadlocks. Include teardown to close connections and remove temp files.
+

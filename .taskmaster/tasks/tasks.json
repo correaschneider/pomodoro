@@ -1,0 +1,1108 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Project scaffolding, Hexagonal layout, and base logging",
+        "description": "Establish repository structure per ADR-008 and implement centralized logging/observability per ADR-012 with rotating file handlers and namespaced loggers.",
+        "details": "Implementation:\n- Create directories:\n  pomodoro_app/{core,adapters/{gui,system_tray,notifications,cli},infrastructure/{db,i18n,config,update},plugin_manager,plugins,tests/{unit,integration},resources/locales,docs/adrs}\n- pyproject.toml (PEP 621):\n  - Requires Python >=3.12\n  - Dependencies: PySide6, pluggy, packaging, tomli-w (if needed), platformdirs (optional), pytest, pytest-qt, black, ruff, pip-audit, notify2;win10toast; (mark OS backends as optional extras), babel (for i18n tooling) if desired\n  - Entry point: pomodoro_app.__main__:main\n- Implement infrastructure/logging.py:\n  - setup_logging(app_name=\"pomodoro_app\") -> None\n  - Create logs directory in user data dir (e.g., ~/.local/share/Pomodoro App/logs or platform-appropriate) using platformdirs or custom\n  - Configure logging with RotatingFileHandler for app.log, events.log, plugin_errors.log\n  - Logger names: pomodoro.core, pomodoro.adapters.gui, pomodoro.infrastructure.db, plugin.<name>\n  - JSON-ish or standard formatter with timestamp, level, name, message\n  Pseudo-code:\n  def setup_logging():\n      log_dir = get_app_data_dir()/\"logs\"\n      log_dir.mkdir(parents=True, exist_ok=True)\n      fmt = logging.Formatter(\"%(asctime)s %(levelname)s %(name)s: %(message)s\")\n      files = {\"app.log\": [\"pomodoro\"], \"events.log\": [\"pomodoro.core\"], \"plugin_errors.log\": [\"plugin\"]}\n      for fname, namespaces in files.items():\n          h = RotatingFileHandler(log_dir/fname, maxBytes=1_000_000, backupCount=5, encoding=\"utf-8\")\n          h.setFormatter(fmt)\n          for ns in namespaces:\n              lg = logging.getLogger(ns)\n              lg.setLevel(logging.INFO)\n              lg.addHandler(h)\n      logging.captureWarnings(True)\n- Add __main__.py to bootstrap logging and app startup\n- Conventions: semantic commits, ruff/black configs, pytest.ini with qt_api=pyside6\nDeliverables: directory layout, pyproject, logging module, basic bootstrap.",
+        "testStrategy": "- Unit: test_logging_setup creates log files, rotates at size threshold (patch maxBytes small), writes to correct namespaces.\n- Lint: run ruff/black in CI locally.\n- Integration smoke: run python -m pomodoro_app to ensure no exceptions and log files are generated.\n- Validate logger names and file separation by emitting test logs from each namespace.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Repository layout per ADR-008",
+            "description": "Create the hexagonal/ports-adapters repository structure with Python packages and placeholders.",
+            "dependencies": [],
+            "details": "- Create directories:\n  pomodoro_app/{core,adapters/{gui,system_tray,notifications,cli},infrastructure/{db,i18n,config,update},plugin_manager,plugins,tests/{unit,integration},resources/locales,docs/adrs}\n- Add __init__.py files for all Python packages: pomodoro_app, core, adapters and its subpackages, infrastructure and its subpackages, plugin_manager, plugins.\n- Add placeholder README.md files where helpful (e.g., docs/adrs/README.md).\n- Ensure tests directories exist with conftest.py placeholders if needed.\nAcceptance criteria:\n- Import succeeds: python -c \"import pomodoro_app\" returns 0.\n- The directory tree matches the specified layout and all package dirs contain __init__.py.\n- docs/adrs directory present for ADR-008 and ADR-012 references.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "pyproject.toml with PEP 621 metadata and dependencies",
+            "description": "Define project metadata, Python version, runtime and optional dependencies, and entry point.",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "- Use PEP 621 in pyproject.toml with name 'pomodoro-app' (distribution) and package 'pomodoro_app'.\n- Requires Python >=3.12.\n- Runtime deps: PySide6, pluggy, packaging, platformdirs, (optionally) tomli-w if needed; i18n tooling (babel) can be dev-only.\n- Optional extras:\n  - notifications: notify2; sys_platform == 'linux'\n  - win_toast: win10toast; sys_platform == 'win32'\n- Dev extras: pytest, pytest-qt, black, ruff, pip-audit, babel (if used).\n- Entry point:\n  [project.scripts]\n  pomodoro-app = \"pomodoro_app.__main__:main\"\n- Choose a build backend (e.g., setuptools) compatible with PEP 621.\nAcceptance criteria:\n- pip install -e .[dev] succeeds on a clean environment.\n- pip install -e .[notifications,win_toast] resolves platform-specific extras without errors.\n- Entry point declared for pomodoro-app (will be exercised in bootstrap subtask).",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Developer tooling and conventions",
+            "description": "Configure ruff/black, pytest.ini, semantic commits guide, and .gitignore.",
+            "dependencies": [
+              "1.1",
+              "1.2"
+            ],
+            "details": "- Configure ruff (tool.ruff) and black (tool.black) either in pyproject.toml or separate config files; include line-length and target Python 3.12.\n- Add pytest.ini with qt_api = pyside6 and useful defaults (testpaths = tests).\n- Create .gitignore covering Python, venvs, build artifacts, logs/, .pytest_cache, .ruff_cache, .mypy_cache.\n- Add CONTRIBUTING.md or docs/semantic_commits.md describing semantic commit message format.\n- Optionally add a basic pre-commit config referencing ruff/black (informational, not required).\nAcceptance criteria:\n- ruff . and black --check . run without crashing on a fresh checkout.\n- pytest -q collects tests (even if zero at this stage) without configuration errors.\n- Documentation for commit conventions exists in repo.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Centralized logging module per ADR-012",
+            "description": "Implement infrastructure/logging.py with setup_logging(app_name) and rotating file handlers.",
+            "dependencies": [
+              "1.1",
+              "1.2"
+            ],
+            "details": "- File: pomodoro_app/infrastructure/logging.py\n- Function: setup_logging(app_name: str = \"pomodoro_app\") -> None\n- Determine log directory using platformdirs.user_data_dir(app_name, None) / \"logs\"; create parents.\n- Configure format: timestamp, level, logger name, message (JSON-ish or standard, e.g., \"%(asctime)s %(levelname)s %(name)s: %(message)s\").\n- Create RotatingFileHandler for each:\n  - app.log attached to namespace 'pomodoro'\n  - events.log attached to namespace 'pomodoro.core'\n  - plugin_errors.log attached to namespace 'plugin'\n  maxBytes=1_000_000, backupCount=5, encoding=\"utf-8\".\n- Set default level INFO on configured loggers; ensure idempotency (avoid duplicate handlers on repeated setup).\n- Enable logging.captureWarnings(True).\n- Cross-platform: verify directories resolve correctly on Linux (~/.local/share/<App>/logs), macOS, and Windows.\nAcceptance criteria:\n- Calling setup_logging() creates the logs directory and the three log files on all major OSes.\n- Handlers are rotating with configured size/backups.\n- Repeated calls do not duplicate handlers (no duplicate log lines).\n- Warnings are captured into app.log.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Namespaced loggers and usage documentation",
+            "description": "Establish logger naming conventions and document how to use them across layers and plugins.",
+            "dependencies": [
+              "1.4"
+            ],
+            "details": "- Logger namespaces:\n  - pomodoro.core (domain/services)\n  - pomodoro.adapters.gui, .system_tray, .notifications, .cli\n  - pomodoro.infrastructure.db, .i18n, .config, .update\n  - plugin.<plugin_name>\n- Set sensible defaults (INFO) and recommend DEBUG for local dev via environment variable override.\n- Provide helper function or snippet demonstrating acquiring namespaced loggers and emitting messages.\n- Document in docs/observability.md (or README section) how messages route to app.log, events.log, plugin_errors.log, and how propagation may cause parent file capture.\nAcceptance criteria:\n- Minimal script using these logger names writes to expected files after setup_logging().\n- Documentation exists showing examples and mapping from namespaces to log files.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Application bootstrap (__main__.py)",
+            "description": "Add __main__.py to initialize logging then start a minimal app stub.",
+            "dependencies": [
+              "1.2",
+              "1.4",
+              "1.5"
+            ],
+            "details": "- File: pomodoro_app/__main__.py\n- Implement main():\n  - Call setup_logging(app_name=\"pomodoro_app\").\n  - Log a startup message via pomodoro adapters/core loggers.\n  - Provide a '--smoke' flag that emits sample logs to each namespace and exits 0.\n  - Placeholder for future GUI/CLI startup (no GUI launch yet).\n- Ensure module is runnable with python -m pomodoro_app and via the console script entry point.\nAcceptance criteria:\n- python -m pomodoro_app runs without exception and creates log files.\n- python -m pomodoro_app --smoke writes messages to app.log, events.log, and plugin_errors.log and exits with code 0.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Logging tests and smoke verification",
+            "description": "Add unit tests for log directory creation, rotation, and namespace routing; provide a smoke test.",
+            "dependencies": [
+              "1.1",
+              "1.2",
+              "1.4",
+              "1.6"
+            ],
+            "details": "- tests/unit/test_logging.py:\n  - Use a temporary directory by monkeypatching platformdirs to ensure isolation.\n  - Call setup_logging(); assert logs dir and app.log/events.log/plugin_errors.log exist.\n  - Patch RotatingFileHandler maxBytes small to force rotation; write enough bytes; assert .1 backup exists.\n  - Emit records via pomodoro.core and plugin.<name>; assert they appear in events.log and plugin_errors.log respectively (and optionally in app.log due to propagation).\n- tests/integration/test_smoke.py:\n  - Run python -m pomodoro_app --smoke in a subprocess; assert exit code 0 and log files created.\n- Ensure tests pass cross-platform (Linux/macOS/Windows) and avoid hardcoded paths.\nAcceptance criteria:\n- All tests pass locally (pytest -q) with the above behaviors.\n- Smoke command produces expected log outputs and rotated files when thresholds are met.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Core timer domain and use-cases",
+        "description": "Implement the Pomodoro domain with states and transitions independent from GUI, emitting events for ticks and cycle changes.",
+        "details": "Implementation (ADR-001):\n- Models (core/models.py):\n  - Enum SessionType {FOCUS, BREAK}\n  - Enum TimerState {IDLE, RUNNING_FOCUS, RUNNING_BREAK, PAUSED}\n  - dataclass Session(id, type, duration_s, started_at, ended_at, state)\n- Ports (core/ports.py):\n  - class TimerPort(Protocol): start_focus(dur_s), start_break(dur_s), pause(), resume(), stop()\n  - Event callbacks to be registered: on_tick(elapsed_s, remaining_s, state), on_cycle_end(session: Session)\n- Service (core/timer_service.py):\n  - TimerService with injected clock (time.monotonic) and scheduler (thread/Qt-agnostic)\n  - Default durations: focus=25*60, break=5*60 (configurable via Settings later)\n  - Observer registry for callbacks\n  - Single-threaded loop using threading and monotonic to avoid drift\nPseudo-code:\nclass TimerService:\n    def __init__(self, tick_interval=1.0, logger=None):\n        self.state = TimerState.IDLE\n        self._tick_interval = tick_interval\n        self._callbacks = {\"tick\": set(), \"cycle_end\": set(), \"state\": set()}\n        self._lock = threading.RLock()\n        self._thread = None\n        self._remaining = 0\n        self._current_session = None\n    def on(self, event, cb): self._callbacks[event].add(cb)\n    def _emit(self, event, *a):\n        for cb in list(self._callbacks[event]):\n            try: cb(*a)\n            except Exception as e: logging.getLogger(\"pomodoro.core\").exception(\"callback error\")\n    def _run_loop(self):\n        last = time.monotonic()\n        while self.state in (TimerState.RUNNING_FOCUS, TimerState.RUNNING_BREAK, TimerState.PAUSED):\n            time.sleep(self._tick_interval)\n            now = time.monotonic()\n            if self.state == TimerState.PAUSED: last = now; continue\n            delta = now - last; last = now\n            with self._lock:\n                self._remaining = max(0, self._remaining - delta)\n                self._emit(\"tick\", int(self._elapsed()), int(self._remaining), self.state)\n                if self._remaining <= 0:\n                    self._finish_cycle()\n                    break\n    def start_focus(self, dur_s): return self._start(SessionType.FOCUS, dur_s)\n    def start_break(self, dur_s): return self._start(SessionType.BREAK, dur_s)\n    def _start(self, type_, dur_s):\n        with self._lock:\n            self._current_session = Session(id=uuid4(), type=type_, duration_s=dur_s, started_at=datetime.now(), ended_at=None, state=\"running\")\n            self.state = TimerState.RUNNING_FOCUS if type_==SessionType.FOCUS else TimerState.RUNNING_BREAK\n            self._remaining = dur_s\n            self._spawn_thread()\n            self._emit(\"state\", self.state)\n    def pause(self): self.state = TimerState.PAUSED; self._emit(\"state\", self.state)\n    def resume(self): self.state = TimerState.RUNNING_FOCUS if self._current_session.type==SessionType.FOCUS else TimerState.RUNNING_BREAK; self._emit(\"state\", self.state)\n    def stop(self): self._finish_cycle(cancelled=True)\n    def _finish_cycle(self, cancelled=False):\n        self._current_session.ended_at = datetime.now()\n        self.state = TimerState.IDLE\n        self._emit(\"cycle_end\", self._current_session)\n        self._emit(\"state\", self.state)\n- Expose domain errors and guard reentrancy.\n- Integrate logging namespace pomodoro.core.\nDeliverables: core models, ports, service with tests stubs.",
+        "testStrategy": "- Unit: simulate focus/break cycles with tick_interval=0.01 to accelerate; assert transitions and callbacks order.\n- Unit: pause/resume preserves remaining time within tolerance.\n- Unit: stop triggers cycle_end with cancelled flag and IDLE state.\n- Property tests: elapsed+remaining ≈ duration within drift bounds.\n- Concurrency: ensure methods thread-safe (no race) with multiple pause/resume calls.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Models: SessionType, TimerState, Session dataclass",
+            "description": "Define core enums and the Session data model for the Pomodoro domain.",
+            "dependencies": [],
+            "details": "Create core/models.py with: Enum SessionType {FOCUS, BREAK}; Enum TimerState {IDLE, RUNNING_FOCUS, RUNNING_BREAK, PAUSED}; dataclass Session(id: UUID, type: SessionType, duration_s: int, started_at: datetime|None, ended_at: datetime|None, state: str). Use state values: 'running'|'finished'|'cancelled'. Provide __repr__ and validation helpers for duration_s > 0. Ensure models are GUI-agnostic and serializable-friendly.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Ports: TimerPort Protocol and event callback registry",
+            "description": "Define the domain port for timer operations and event callback signatures.",
+            "dependencies": [
+              "2.1"
+            ],
+            "details": "Create core/ports.py with Protocol TimerPort: start_focus(dur_s: int) -> None, start_break(dur_s: int) -> None, pause() -> None, resume() -> None, stop() -> None. Define event callback types: OnTick(elapsed_s: int, remaining_s: int, state: TimerState) and OnCycleEnd(session: Session). Define an observer registration API: on(event: Literal['tick','cycle_end','state'], cb: Callable) -> None and off(event, cb) -> None. Keep ports independent from any GUI/threading framework.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "TimerService skeleton and construction",
+            "description": "Implement TimerService base with injected clock/sleeper, tick interval, and logging namespace.",
+            "dependencies": [
+              "2.1",
+              "2.2"
+            ],
+            "details": "Create core/timer_service.py with class TimerService(TimerPort). __init__(tick_interval: float = 1.0, clock: Callable[[], float] = time.monotonic, sleeper: Callable[[float], None] = time.sleep, logger: logging.Logger|None = None). Initialize state=TimerState.IDLE, default durations focus=25*60, break=5*60, observer registry {'tick': set(), 'cycle_end': set(), 'state': set()}, RLock, worker thread handle, remaining seconds, current_session=None. Use logging.getLogger('pomodoro.core') by default.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Threaded loop: monotonic-based ticking with pause handling",
+            "description": "Implement the single-threaded run loop using monotonic time, minimizing drift and handling pause.",
+            "dependencies": [
+              "2.3"
+            ],
+            "details": "Implement _run_loop(): use last=self.clock(); loop while state in {RUNNING_FOCUS, RUNNING_BREAK, PAUSED}; call sleeper(tick_interval); now=self.clock(); if PAUSED: last=now; continue; delta=now-last; last=now; under lock, decrement remaining = max(0, remaining - delta); emit tick with int(elapsed), int(remaining), current state; if remaining <= 0, call _finish_cycle() and break. Provide _elapsed() helper returning duration_s - remaining. Ensure drift minimization by basing on monotonic delta rather than tick_interval.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "API methods with state/reentrancy guards",
+            "description": "Implement start_focus/break, pause, resume, stop with validation and guards.",
+            "dependencies": [
+              "2.3",
+              "2.4"
+            ],
+            "details": "Implement start_focus(dur_s:int) and start_break(dur_s:int) delegating to _start(type, dur_s). Validate dur_s>0. Only allow start when state==IDLE; otherwise raise AlreadyRunningError. _start: under lock, create Session(id=uuid4(), type, duration_s=dur_s, started_at=now, ended_at=None, state='running'); set state to RUNNING_FOCUS or RUNNING_BREAK; set remaining=dur_s; spawn worker thread if not alive; emit 'state'. pause(): only when RUNNING_*; set state=PAUSED; emit 'state'. resume(): only when PAUSED; restore state to RUNNING_* based on session.type; emit 'state'. stop(): valid when RUNNING_* or PAUSED; call _finish_cycle(cancelled=True). Make these methods idempotent where reasonable (e.g., repeated pause raises AlreadyPausedError or becomes no-op by design decision).",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Event emission and safe callback execution",
+            "description": "Implement observer registry, event emission for tick/cycle_end/state, and error-safe callbacks.",
+            "dependencies": [
+              "2.3",
+              "2.2",
+              "2.5"
+            ],
+            "details": "Provide on(event, cb) and off(event, cb) methods managing sets per event: 'tick','cycle_end','state'. Implement _emit(event, *args) that iterates a snapshot of callbacks and wraps each call in try/except, logging exceptions to 'pomodoro.core' without breaking the loop. Emit 'tick' on each loop iteration; emit 'cycle_end' with Session on completion or cancellation; emit 'state' on each state change including transitions to/from PAUSED and to IDLE.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Concurrency, thread lifecycle, and idempotency",
+            "description": "Harden concurrency aspects with RLock, thread spawning/joining, cancellation semantics, and idempotent operations.",
+            "dependencies": [
+              "2.3",
+              "2.4",
+              "2.5",
+              "2.6"
+            ],
+            "details": "Use threading.RLock to guard shared state (state, remaining, current_session). Implement _spawn_thread() that starts a daemon thread if not alive; ensure only one worker exists. On _finish_cycle(cancelled: bool=False): set session.ended_at=now; set session.state='cancelled' if cancelled else 'finished'; transition service state to IDLE; emit 'cycle_end' then 'state'. Ensure stop() triggers thread exit and join with timeout in a non-blocking safe manner if needed. Make stop() idempotent and safe when already IDLE (either no-op or raise AlreadyIdleError per chosen contract). Ensure pause/resume are race-safe and do not lose ticks; updating 'last' timestamp in loop avoids jump on resume.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Domain errors and validation rules",
+            "description": "Define exception classes and enforce validation rules across API methods.",
+            "dependencies": [
+              "2.1",
+              "2.5",
+              "2.7"
+            ],
+            "details": "Create core/errors.py with exceptions: InvalidDurationError, AlreadyRunningError, NotRunningError, AlreadyPausedError, AlreadyIdleError, InvalidStateTransitionError. Use these in TimerService methods for guards (e.g., start_* when not IDLE -> AlreadyRunningError; pause when not RUNNING_* -> NotRunningError; resume when not PAUSED -> InvalidStateTransitionError; stop when IDLE -> AlreadyIdleError). Validate dur_s > 0 else InvalidDurationError. Export errors via core.__all__ and document usage.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 9,
+            "title": "Tests: ticks, transitions, pause/resume, stop, properties, races",
+            "description": "Implement unit and property tests for timing accuracy, state transitions, events, and concurrency edge cases.",
+            "dependencies": [
+              "2.1",
+              "2.2",
+              "2.3",
+              "2.4",
+              "2.5",
+              "2.6",
+              "2.7",
+              "2.8"
+            ],
+            "details": "Use pytest (and hypothesis for properties). Configure accelerated runs with tick_interval=0.01. Tests: start_focus/break produce ticks and end with cycle_end; ordering: 'state'→first 'tick'→...'cycle_end'→'state(IDLE)'. Pause/resume preserves remaining within small tolerance; no tick emission during paused period. stop() emits cycle_end with session.state='cancelled' and sets service state to IDLE. Property: for random durations, invariant int(elapsed)+int(remaining) ≈ duration within 1s. Reentrancy: starting while running raises AlreadyRunningError; pause when paused raises AlreadyPausedError, etc. Concurrency/race: stress with rapid pause/resume/stop from multiple threads; ensure no deadlocks and thread terminates. Mock/monkeypatch clock/sleeper where needed; verify logging does not raise on callback exceptions.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "PySide6 GUI main window and controls",
+        "description": "Build the main window with start/pause/resume/stop controls, timer display, and settings entry point; integrate with TimerService via ports.",
+        "details": "Implementation (ADR-005):\n- adapters/gui/app.py: QApplication bootstrap, install translator later, setQuitOnLastWindowClosed(False) for tray use.\n- adapters/gui/main_window.py:\n  - QMainWindow with QLabel timer, QPushButtons (Start, Pause/Resume, Stop), Settings action, StatusBar.\n  - Use Qt signals/slots to call TimerService methods via a controller.\n  - Render current state and remaining time every tick using Qt signal emitted from domain thread (use QObject bridge with queued connections).\n- Infrastructure glue: a GuiController bridges TimerService and UI with thread-safe signal emission.\n- I18n placeholders: wrap strings with _ = gettext.gettext; final locale loading in Task 7.\n- Clean shutdown: on closeEvent, do not quit app if tray enabled; emit signal for graceful stop.\nPseudo-code:\nclass GuiBridge(QtCore.QObject):\n    tick = QtCore.Signal(int, int, object)  # elapsed, remaining, state\n    state = QtCore.Signal(object)\nbridge = GuiBridge()\nservice.on(\"tick\", lambda e,r,s: QtCore.QMetaObject.invokeMethod(bridge, lambda: bridge.tick.emit(e,r,s), Qt.QueuedConnection))\n\nclass MainWindow(QMainWindow):\n    def __init__(self, service):\n        self.startBtn.clicked.connect(lambda: service.start_focus(self._focus_secs()))\n        self.pauseBtn.clicked.connect(service.pause)\n        self.resumeBtn.clicked.connect(service.resume)\n        self.stopBtn.clicked.connect(service.stop)\n        bridge.tick.connect(self._on_tick)\n        bridge.state.connect(self._on_state)\n- Settings dialog stub: durations, overlay, sounds, language (actual persistence wired in Task 6/7).\nDeliverables: runnable GUI wired to domain, basic settings stub, thread-safe updates.",
+        "testStrategy": "- Integration (pytest-qt): launch QApplication and MainWindow; simulate button clicks; assert bridge signals received and labels update.\n- Unit: formatting function for mm:ss; verify states toggle Pause/Resume button.\n- Manual: verify responsiveness and event loop performance on Windows/Linux/macOS.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "App bootstrap (adapters/gui/app.py) with translator hook",
+            "description": "Create QApplication bootstrap, configure high-DPI, logging, and setQuitOnLastWindowClosed(False). Provide entry points to build and show MainWindow later.",
+            "dependencies": [],
+            "details": "Implement adapters/gui/app.py with: (1) create_app(argv=None) -> QApplication: set high-DPI attributes if needed, instantiate QApplication, set application name/org, setQuitOnLastWindowClosed(False), basic logger setup. (2) translator hook: define a no-op install_translator(gettext_func) to be replaced in Task 7; wrap UI strings using _ = gettext.gettext. (3) run(service, tray_enabled=False): constructs MainWindow via factory/controller, shows it, and starts app.exec(). Ensure app.aboutToQuit is available for graceful shutdown wiring later.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Thread-safe GUI bridge (QObject signals)",
+            "description": "Implement GuiBridge with tick/state signals and thread-safe emission from domain threads using QueuedConnection.",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "Create adapters/gui/bridge.py: class GuiBridge(QtCore.QObject) with QtCore.Signal definitions: tick = Signal(int, int, object) for (elapsed, remaining, state), state = Signal(object) for state-only updates. Provide attach_service(service) that subscribes to service.on('tick'/'state') and forwards events via QtCore.QMetaObject.invokeMethod(self, lambda: self.tick.emit(...), Qt.QueuedConnection). Add detach_service() for cleanup. Expose a property is_attached and optional error signal for domain exceptions.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "MainWindow UI layout and actions",
+            "description": "Build QMainWindow with timer label, Start/Pause-Resume/Stop buttons, Settings action, and StatusBar. Prepare slots for bridge updates.",
+            "dependencies": [
+              "3.1",
+              "3.2"
+            ],
+            "details": "Implement adapters/gui/main_window.py: class MainWindow(QMainWindow). Central widget with QVBoxLayout: large QLabel for time (monospace, scalable), horizontal button row: Start, Pause/Resume (single toggle button initially labeled 'Pause'), Stop. Menu or toolbar with QAction 'Settings…'. StatusBar to display current state and hints. Define slots _on_tick(elapsed, remaining, state) and _on_state(state) to update label and UI. Wrap visible strings with _(). Provide signals like openSettingsRequested. Do not yet wire business logic; leave button clicked signals exposed for controller in subtask 4.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Controller wiring to TimerService and Pause/Resume toggle",
+            "description": "Implement GuiController to connect UI signals to TimerService methods and keep Pause/Resume button/state in sync with service state.",
+            "dependencies": [
+              "3.2",
+              "3.3"
+            ],
+            "details": "Create adapters/gui/controller.py: class GuiController(service, bridge, window, settings_provider=None). Connect window.startBtn to service.start_focus(duration) where duration comes from settings_provider or a default. Wire pauseBtn/resume semantics: single toggle button—on click, call service.pause() or service.resume() depending on current state; update text between _('Pause') and _('Resume'). Wire stopBtn to service.stop(). Connect bridge.tick/state to window._on_tick/_on_state and update enabled/disabled state of buttons based on domain state (Idle/Running/Paused). Handle errors with logging and optional message in StatusBar. Expose setup() and teardown() methods.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Time formatting utility (mm:ss) with unit tests",
+            "description": "Provide a reusable mm:ss formatter for remaining time and add unit tests for edge cases.",
+            "dependencies": [],
+            "details": "Add adapters/gui/utils.py with function format_mmss(total_seconds: int) -> str that clamps negatives to 0, rounds toward zero, and formats minutes and seconds as mm:ss (e.g., 0->'00:00', 5->'00:05', 65->'01:05', 3600->'60:00'). Include tests in tests/unit/test_format_mmss.py covering negatives, small numbers, minute boundaries, and large values. MainWindow will use this in _on_tick once available.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Settings dialog stub (no persistence)",
+            "description": "Add a QDialog to collect durations, overlay, sounds, and language; open from MainWindow Settings action.",
+            "dependencies": [
+              "3.3"
+            ],
+            "details": "Create adapters/gui/settings_dialog.py: class SettingsDialog(QDialog) with QFormLayout: QSpinBox focus_minutes, short_break_minutes, long_break_minutes (ranges 1–180), QCheckBox enable_overlay, QCheckBox enable_sounds, QComboBox language (codes, placeholders). Include QDialogButtonBox OK/Cancel. Provide methods values() -> dict and set_values(defaults). In MainWindow, connect Settings QAction to show the dialog (modal) and emit a signal with chosen values; no persistence or live language switch yet (handled in Task 7).",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Graceful shutdown and tray-aware closeEvent",
+            "description": "Implement closeEvent to hide instead of quitting when tray is enabled and emit a signal to request service stop on app quit.",
+            "dependencies": [
+              "3.1",
+              "3.3",
+              "3.4"
+            ],
+            "details": "In MainWindow, add init parameter tray_enabled: bool. Override closeEvent: if tray_enabled, event.ignore(); self.hide(); update StatusBar. Otherwise, proceed to close. Ensure app.setQuitOnLastWindowClosed(False) from subtask 1 is honored. Add a Qt signal requestStop for clean shutdown; in GuiController/setup, connect QApplication.instance().aboutToQuit to service.stop and any necessary bridge detach. Ensure resources/signals are disconnected in teardown().",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Integration tests (pytest-qt) and basic logging",
+            "description": "Write pytest-qt tests to simulate button clicks and assert label/state updates via bridge; add basic logging hooks and assertions.",
+            "dependencies": [
+              "3.1",
+              "3.2",
+              "3.3",
+              "3.4",
+              "3.5",
+              "3.6",
+              "3.7"
+            ],
+            "details": "Add tests/integration/test_main_window.py using qtbot: construct QApplication, MainWindow, GuiBridge, and a FakeTimerService exposing start_focus/pause/resume/stop and custom on(event, cb). Simulate clicks (Start, Pause/Resume, Stop); emit bridge.tick/state to mimic domain thread and assert label shows format_mmss(remaining) and Pause/Resume text toggles. Verify closeEvent hides when tray_enabled=True. Add logging for GUI actions using logger 'pomodoro.adapters.gui'; in tests, capture logs to ensure key transitions are logged without errors.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "System tray adapter (QSystemTrayIcon)",
+        "description": "Provide system tray icon, context menu actions (start/pause/resume/stop, settings, quit), and live tooltip with current state.",
+        "details": "Implementation (ADR-014):\n- adapters/system_tray/tray.py:\n  - Class TrayController(QSystemTrayIcon) with QMenu actions wired to TimerService.\n  - Actions: Start Focus, Start Break, Pause/Resume toggle, Stop, Open Settings, Show/Hide Window, Quit.\n  - Tooltip shows remaining time and state; update via GuiBridge.state/tick.\n  - Icons from resources; OS-specific nuances: ensure app icon visible on macOS (setWindowIcon, NSApp activation hints if needed).\n  - Ensure app.setQuitOnLastWindowClosed(False) (set in GUI bootstrap).\nPseudo-code:\nclass TrayController(QtWidgets.QSystemTrayIcon):\n    def __init__(self, app, service, main_window):\n        menu = QtWidgets.QMenu()\n        a_start = menu.addAction(_(\"Start Focus\")); a_start.triggered.connect(lambda: service.start_focus(...))\n        a_pause = menu.addAction(_(\"Pause\")); a_pause.triggered.connect(service.pause)\n        a_resume = menu.addAction(_(\"Resume\")); a_resume.triggered.connect(service.resume)\n        a_stop = menu.addAction(_(\"Stop\")); a_stop.triggered.connect(service.stop)\n        a_settings = menu.addAction(_(\"Settings\")); a_settings.triggered.connect(main_window.open_settings)\n        a_quit = menu.addAction(_(\"Quit\")); a_quit.triggered.connect(app.quit)\n        self.setContextMenu(menu)\n    def update_tooltip(state, remaining):\n        self.setToolTip(f\"{state.name} – {remaining//60:02d}:{remaining%60:02d}\")\n- Wire bridge.tick/state to update tooltip and toggle actions enabled/visible.\nDeliverables: tray module, integrated into app bootstrap; menu accelerators and icons.",
+        "testStrategy": "- Integration (pytest-qt): instantiate TrayController; verify actions exist and connected (spy on TimerService methods).\n- Manual cross-OS: verify tray presence and tooltip updates; confirm macOS specifics (menu shown when app has no windows).\n- Logging: capture tray events in pomodoro.adapters.gui logger.",
+        "priority": "medium",
+        "dependencies": [
+          1,
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "TrayController base class and menu scaffold",
+            "description": "Create adapters/system_tray/tray.py with TrayController(QSystemTrayIcon), context menu scaffold, and icon setup.",
+            "dependencies": [],
+            "details": "Implement class TrayController(app: QApplication, service: TimerService, main_window: QMainWindow, bridge: GuiBridge). Create QMenu instance and assign via setContextMenu. Load tray icon from Qt resources (e.g., QIcon(\":/icons/app_tray\")) and call setIcon + show. Use gettext _() for all user-facing strings. Keep references to QAction objects as instance attributes for later state updates. Optionally connect QSystemTrayIcon.activated to show/hide the menu on click as per platform norms.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Actions and wiring to TimerService/MainWindow",
+            "description": "Add actions: Start Focus, Start Break, Pause/Resume, Stop, Settings, Show/Hide Window, Quit; connect to services and window.",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "Create QActions with icons and accelerators (e.g., Start Focus: Ctrl+Alt+F, Start Break: Ctrl+Alt+B, Pause/Resume: Ctrl+Alt+P, Stop: Ctrl+Alt+S, Settings: Ctrl+,). Wire triggers: service.start_focus(), service.start_break(), service.pause()/service.resume(), service.stop(), main_window.open_settings(), toggle main_window show/hide, and app.quit(). Add separators to group actions logically. Store all actions on self for later enable/disable and label/icon updates. Ensure Quit action always available.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Live tooltip updates via GuiBridge",
+            "description": "Subscribe to GuiBridge tick/state signals and render tooltip with remaining time and current state.",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "Connect to bridge.on_tick(elapsed_s, remaining_s, state) and bridge.on_state(state) signals. Implement update_tooltip(state, remaining_s) that formats as \"State – mm:ss\" with zero-padded minutes/seconds and localized state labels. Handle IDLE by showing app name and hint (e.g., \"Idle – 00:00\"). Avoid heavy work in the slot; debounce only if necessary. Ensure thread-safety by emitting/handling signals on the GUI thread.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "State-driven UI toggling for actions",
+            "description": "Enable/disable and toggle action visibility/labels based on timer state (running, paused, idle).",
+            "dependencies": [
+              "4.2",
+              "4.3"
+            ],
+            "details": "Subscribe to the same bridge state changes and update actions: disable Start actions when running/paused; enable Start actions when idle; Stop enabled when running/paused; implement a single Pause/Resume toggle action that switches text/icon and connected slot between service.pause and service.resume depending on state; Show/Hide Window action label updates based on main_window.isVisible(). Keep icons and tooltips synchronized with current state.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Cross-OS icon/visibility nuances and logging",
+            "description": "Handle resource loading and platform-specific tray behavior; add namespaced logging.",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "Verify QSystemTrayIcon.isSystemTrayAvailable and log/handle absence gracefully. Load icons from Qt resources for all DPI scales; set application/window icon so the tray icon is visible. On macOS: ensure setWindowIcon is called on main window, consider NSApp activation hints if the tray menu should appear when no windows are open, verify the menu is reachable when all windows hidden, and respect app.setQuitOnLastWindowClosed(False) (set in GUI bootstrap). Add logger under pomodoro.adapters.gui or pomodoro.adapters.system_tray; log action triggers and state transitions for diagnostics.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Tests (pytest-qt) and manual verification checklist",
+            "description": "Write integration tests verifying actions exist and are connected; assert tooltip updates; define manual cross-OS checks.",
+            "dependencies": [
+              "4.2",
+              "4.3",
+              "4.4",
+              "4.5"
+            ],
+            "details": "Using pytest-qt and qtbot: instantiate TrayController with a fake TimerService (monkeypatched methods) and fake GuiBridge; verify actions by text/shortcut exist; trigger actions and assert corresponding service methods called; simulate tick/state signals and assert tooltip text matches expected formatting; assert Pause/Resume toggles label/slot with state; assert enabled/disabled states per TimerState. Manual checklist: confirm tray icon appears on Windows/macOS/Linux; tooltip updates live; menu items invoke correct behavior; macOS menu available when no windows are open; Show/Hide toggles window correctly; icons/accelerators render as expected.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Notifications and overlay visual with fallbacks",
+        "description": "Implement notification service with native backends per OS and a Qt overlay fallback, following fallback order: Native → Overlay → Tray/Log.",
+        "details": "Implementation (ADR-010):\n- adapters/notifications/service.py:\n  - NotificationService with method notify(title, message, actions=None, urgency=\"normal\") and convenience methods on_cycle_start/end.\n  - Backend selection at runtime:\n    - Linux: try notify2 (DBus); else fallback\n    - Windows: win10toast; else fallback\n    - macOS: try pync; else fallback to osascript; else overlay\n  - Fallback chain ends with tray.showMessage if available, else logging only.\n- Qt Overlay (adapters/notifications/overlay.py): frameless, translucent, always-on-top QWidget; shows brief message with fade-in/out; respects user prefs (enable/disable).\nPseudo-code:\nclass NotificationService:\n    def __init__(self, tray=None, overlay=None):\n        self._backend = self._choose_backend()\n        self._tray = tray; self._overlay = overlay\n    def _choose_backend(self):\n        try: import notify2; return LinuxNotify2()\n        except Exception: pass\n        try: import win10toast; return WinToast()\n        except Exception: pass\n        try: import pync; return MacPync()\n        except Exception: pass\n        return None\n    def notify(self, title, msg, actions=None):\n        if self._backend:\n            try: self._backend.send(title, msg, actions)\n            except Exception: self._backend=None\n        if not self._backend and self._overlay and self._overlay.enabled:\n            self._overlay.show_message(title, msg)\n        elif self._tray:\n            self._tray.showMessage(title, msg)\n        logging.getLogger(\"pomodoro.adapters.gui\").info(\"Notification: %s - %s\", title, msg)\n- Integrate with TimerService: subscribe to cycle_end to emit notifications; provide action buttons (e.g., Start Break/Next Focus) when backend supports.\nDeliverables: notification service, overlay widget, integration hooks.",
+        "testStrategy": "- Unit: mock backends to assert fallback order and action dispatching; simulate backend exception and ensure fallback.\n- Integration: trigger cycle end and verify service invoked; on headless CI, ensure no crash (overlay creation guarded by display availability).\n- Manual: validate appearance and timing across OS; ensure user prefs to disable overlay respected.",
+        "priority": "medium",
+        "dependencies": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "NotificationService API",
+            "description": "Define the NotificationService interface with notify() and convenience methods for cycle start/end.",
+            "dependencies": [],
+            "details": "Create adapters/notifications/service.py with class NotificationService(tray=None, overlay=None). Methods: notify(title, message, actions=None, urgency=\"normal\"), on_cycle_start(session) and on_cycle_end(session). Actions is an optional list of action descriptors (id,label,callback). Urgency enum or string mapped across backends. Ensure logger name pomodoro.adapters.gui is used. Document thread-safety expectations (notify callable from domain thread; UI interactions must hop to Qt thread). Provide simple no-op defaults for missing tray/overlay. Expose a minimal backend interface contract: send(title, message, actions=None, urgency=\"normal\") -> bool.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Backend selection logic",
+            "description": "Detect OS and select native notification backend; prepare fallback entry into overlay/tray/log.",
+            "dependencies": [
+              "5.3",
+              "5.4",
+              "5.5",
+              "5.1"
+            ],
+            "details": "Implement _choose_backend() using sys.platform/platform.system(). Linux: try import notify2 then LinuxNotify2(); Windows: try import win10toast then WinToastBackend(); macOS: try import pync then MacPyncBackend(); if none available return None. Lazy import to avoid hard dependencies. Cache chosen backend; on send() failure set backend to None (to trigger fallbacks). Provide reset method for tests. Include detection/guards for WSL or headless Linux (skip notify2 init if no DBus).",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Linux backend wrapper: notify2",
+            "description": "Integrate notify2 over DBus with robust initialization and error handling.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Implement class LinuxNotify2 implementing send(). On first use, call notify2.init(app_name) with try/except for DBus errors. Create notify2.Notification(title, message, icon=None). Map urgency to notify2.URGENCY_LOW/NORMAL/CRITICAL. If actions are provided and library supports them, attach action callbacks via add_action; otherwise ignore gracefully. Use .show() and return True on success. Catch exceptions (e.g., DBusException), log debug, and rethrow or return False to trigger fallback. Avoid blocking; no busy waits.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Windows backend wrapper: win10toast",
+            "description": "Wrap win10toast for Windows notifications with defensive error handling.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Implement class WinToastBackend with send(). Instantiate ToastNotifier once. Use show_toast(title, message, duration=5, threaded=True). Note that classic win10toast does not support action buttons; ignore actions. Consider win10toast-click if available, but keep optional. Map urgency to duration or ignore if unsupported. Wrap calls in try/except; return True on success else False. Ensure calls do not block the UI thread.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "macOS backend wrapper: pync and osascript fallback",
+            "description": "Provide macOS notifier using pync, with osascript as library-less fallback.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Implement class MacPyncBackend with send() trying pync.Notifier.notify(message, title=title). If pync import fails at construction, provide an OsascriptBackend alternative. OsascriptBackend.send() uses subprocess.run([\"osascript\", \"-e\", applescript], timeout=2) with escaped strings: display notification \"{msg}\" with title \"{title}\". macOS does not support arbitrary action buttons via UserNotifications/osascript; ignore actions. Return True on zero exit code; handle CalledProcessError/TimeoutExpired by returning False. Keep non-blocking and robust.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Qt overlay widget",
+            "description": "Implement frameless, translucent, always-on-top QWidget overlay with fade animations and prefs.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Create adapters/notifications/overlay.py with class OverlayWidget(QWidget) exposing enabled property and show_message(title, message). Use Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint; setAttribute(Qt.WA_TranslucentBackground). Build simple layout with title and message labels. Implement fade-in/out via QPropertyAnimation on windowOpacity and a QTimer for auto-close. Support user preferences: enabled flag, display duration, position (e.g., top-right), font/size if available. Provide a lightweight controller wrapper that checks for QApplication instance and display availability; in headless environments, enabled becomes False.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Fallback logic in notify()",
+            "description": "Implement robust fallback chain: Native backend → Overlay → Tray.showMessage → Logging.",
+            "dependencies": [
+              "5.2",
+              "5.6",
+              "5.1"
+            ],
+            "details": "In NotificationService.notify(): if backend exists, attempt backend.send(); on exception or False, set backend=None. If no backend and overlay and overlay.enabled, schedule overlay.show_message(...) on the Qt main thread (QMetaObject.invokeMethod or QTimer.singleShot). Else if tray available, call tray.showMessage(title, message, icon, msecs). Always log info with logger. Wrap each step in try/except so a failure in overlay or tray still proceeds to logging without crashing. Optionally degrade urgency mapping for tray. Ignore actions when the chosen sink cannot support them.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Domain integration with TimerService",
+            "description": "Subscribe to TimerService events and emit user-friendly notifications with optional actions.",
+            "dependencies": [
+              "5.7"
+            ],
+            "details": "Wire NotificationService to core TimerService: on cycle start/end, call on_cycle_start/end to produce messages like \"Focus started\" / \"Break started\" / \"Focus ended\" with remaining/next hints. Where backend supports actions, provide callbacks such as Start Break, Next Focus, or Dismiss that invoke TimerService methods. Ensure integration is optional via user settings (enable/disable notifications). Add minimal DI/composition in app startup to pass tray and overlay instances into NotificationService.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 9,
+            "title": "Tests and CI guards",
+            "description": "Unit and integration tests covering fallback order, platform branches, actions, and headless safety.",
+            "dependencies": [
+              "5.1",
+              "5.2",
+              "5.3",
+              "5.4",
+              "5.5",
+              "5.6",
+              "5.7",
+              "5.8"
+            ],
+            "details": "Unit: mock backend wrappers to assert order Native→Overlay→Tray→Log; simulate backend exceptions to ensure fallback triggers and backend resets. Platform selection: monkeypatch sys.platform/platform.system to hit Linux/Windows/macOS code paths. macOS osascript: mock subprocess calls. Windows toast: mock ToastNotifier. Linux notify2: mock init and Notification.show. Overlay: pytest-qt to instantiate widget when display available; separate tests ensure overlay controller disables in headless CI (no crash). Integration: simulate TimerService events and verify notifications sent and action callbacks invoked where supported. Ensure deterministic tests with timeouts <=2s.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "SQLite persistence and repositories",
+        "description": "Create SQLite database, schema, and repositories to store sessions, settings, stats; integrate with domain events.",
+        "details": "Implementation (ADR-003):\n- infrastructure/db/connection.py:\n  - get_db_path() in user data dir; create directories\n  - sqlite3.connect(path, check_same_thread=False, isolation_level=None) and return connection; enable WAL pragma for robustness\n- infrastructure/db/schema.py:\n  - DDL for tables (if not exists):\n    sessions(id TEXT PK, type TEXT, duration_s INT, started_at TEXT, ended_at TEXT, state TEXT)\n    settings(key TEXT PK, value TEXT)\n    stats cache optional (or compute on demand)\n- infrastructure/db/repositories.py:\n  - SessionRepository: add(session), list_by_period(start,end), last_n(n)\n  - SettingsRepository: get(key, default), set(key, value)\n  - StatsService: compute totals from sessions (total focus time, interruptions)\n- Integration: subscribe to TimerService cycle_end to persist Session; load Settings on app start to configure durations, overlay, language.\n- Logging via pomodoro.infrastructure.db.\nPseudo-code:\nclass SessionRepository:\n    def add(self, s: Session):\n        cur = conn.execute(\"INSERT INTO sessions VALUES (?,?,?,?,?,?)\", (s.id, s.type.name, s.duration_s, s.started_at.isoformat(), s.ended_at.isoformat(), s.state))\nclass SettingsRepository:\n    def get(self, key, default=None):\n        row = conn.execute(\"SELECT value FROM settings WHERE key=?\", (key,)).fetchone()\n        return json.loads(row[0]) if row else default\n    def set(self, key, value):\n        conn.execute(\"INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value\", (key, json.dumps(value)))\nDeliverables: schema creation on first run, repositories, wiring to app startup/shutdown.",
+        "testStrategy": "- Unit: create temp DB; ensure schema created; insert and retrieve sessions and settings; compute stats over sample data.\n- Integration: run a full focus cycle and confirm a Session row persisted; change durations in settings and verify TimerService uses them.\n- Concurrency: simulate quick successive writes; verify no deadlocks with WAL and proper commits.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "DB path and connection setup",
+            "description": "Implement database path discovery in user data directory, ensure directories exist, and create a configured SQLite connection.",
+            "dependencies": [],
+            "details": "Files: infrastructure/db/connection.py. Implement get_db_path() to return a platform-specific user data dir path (e.g., using platformdirs) under a pomodoro app folder, and ensure parent directories are created. Implement get_connection(path=None) that resolves the DB path, opens sqlite3.connect(path, check_same_thread=false, isolation_level=None), configures PRAGMA journal_mode=WAL, PRAGMA synchronous=NORMAL, PRAGMA foreign_keys=ON, PRAGMA busy_timeout=5000, and returns the connection. Provide a close_connection() util if a global connection is managed. Expose a small contextmanager for explicit transactions (BEGIN; COMMIT/ROLLBACK) when needed.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Schema DDL creation",
+            "description": "Create schema and ensure tables exist on first run for sessions and settings; optional stats cache.",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Files: infrastructure/db/schema.py. Implement create_schema(conn) with DDL: CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY, type TEXT NOT NULL, duration_s INTEGER NOT NULL, started_at TEXT NOT NULL, ended_at TEXT, state TEXT NOT NULL); CREATE INDEX IF NOT EXISTS idx_sessions_started_at ON sessions(started_at); CREATE INDEX IF NOT EXISTS idx_sessions_type ON sessions(type). CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL). Optionally create a stats_cache table if needed later. Ensure idempotent calls and run after obtaining a connection. Consider a simple schema_version table for future migrations (insert version 1 if absent).",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "SessionRepository implementation",
+            "description": "Provide repository to insert and query Session records.",
+            "dependencies": [
+              "6.1",
+              "6.2"
+            ],
+            "details": "Files: infrastructure/db/repositories.py. Class SessionRepository with constructor(conn, logger). Methods: add(session) inserting (id, type.name, duration_s, started_at.isoformat(), ended_at?.isoformat(), state) using parameterized SQL; list_by_period(start: datetime, end: datetime) returning domain Session objects filtered by started_at >= start and < end; last_n(n: int) ordering by started_at DESC LIMIT n. Ensure proper ISO 8601 serialization/deserialization, and handle None ended_at. Add minimal input validation and convert enum/string types appropriately.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "SettingsRepository with JSON serialization",
+            "description": "Provide repository to get/set settings with JSON-encoded values and upsert behavior.",
+            "dependencies": [
+              "6.1",
+              "6.2"
+            ],
+            "details": "Files: infrastructure/db/repositories.py. Class SettingsRepository with constructor(conn, logger). Methods: get(key: str, default=None) -> Any reading SELECT value FROM settings WHERE key=? and returning json.loads(row[0]) if present else default; set(key: str, value: Any) persisting json.dumps(value) via INSERT ... ON CONFLICT(key) DO UPDATE SET value=excluded.value. Optional list_all() for debugging. Validate JSON serialization errors and log appropriately.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "StatsService computations",
+            "description": "Compute totals and basic statistics from sessions via queries.",
+            "dependencies": [
+              "6.3"
+            ],
+            "details": "Files: infrastructure/db/repositories.py (or separate infrastructure/db/stats.py). Class StatsService with constructor(session_repo, conn, logger). Methods: totals_by_type(start, end) -> {FOCUS: seconds, BREAK: seconds}; count_completed_and_cancelled(start, end); streaks/recent_summary(); daily_totals(start, end) grouping by date(started_at). Define interruption as non-completed/cancelled focus sessions (state not completed) and expose count_interruptions(start, end). Prefer SQL aggregates for performance and fallback to repository iteration when simpler.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Application wiring and domain event integration",
+            "description": "Subscribe to TimerService events to persist sessions and load settings at startup to configure defaults.",
+            "dependencies": [
+              "6.3",
+              "6.4"
+            ],
+            "details": "Files: adapters composition root or app startup module. On app start: initialize connection (6.1), create schema (6.2), instantiate repositories (6.3/6.4), and read settings to configure TimerService defaults (focus/break durations, overlay, language). Subscribe to TimerService on_cycle_end(session) to call SessionRepository.add(session). Ensure graceful shutdown closes connection. Handle missing settings by applying sensible defaults and writing them on first run.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Logging and error handling for DB layer",
+            "description": "Add structured logging and robust error handling across DB, schema, repositories, and wiring.",
+            "dependencies": [
+              "6.1",
+              "6.2",
+              "6.3",
+              "6.4"
+            ],
+            "details": "Namespace: pomodoro.infrastructure.db. Configure logger and add debug logs for connection open/close, schema creation, SQL operations timing (optional). Wrap DB operations with try/except to log exceptions (include SQL and params when safe) and rethrow as domain-specific exceptions where appropriate. Ensure busy_timeout and WAL reduce 'database is locked' errors; on OperationalError, include guidance in logs. Add safe guards to never log sensitive values stored in settings.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Tests: unit, integration, concurrency",
+            "description": "Write tests for schema, repositories, stats, and integration with TimerService; include basic concurrency checks.",
+            "dependencies": [
+              "6.1",
+              "6.2",
+              "6.3",
+              "6.4",
+              "6.5",
+              "6.6",
+              "6.7"
+            ],
+            "details": "Unit: create temp DB, run create_schema, assert tables and indices exist. Test SessionRepository.add/list_by_period/last_n with sample data and ISO timestamps. Test SettingsRepository.get/set round-tripping various JSON types. Test StatsService totals and interruptions over controlled datasets. Integration: wire a minimal TimerService stub to emit cycle_end and verify a Session row is persisted; load settings on startup and confirm TimerService reads them. Concurrency: simulate parallel inserts/reads using threads to validate WAL+busy_timeout behavior and absence of deadlocks. Include teardown to close connections and remove temp files.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Internationalization (gettext) setup",
+        "description": "Configure gettext with .po/.mo catalogs, implement locale loading/switching, and ensure all UI strings are translatable with plugin support.",
+        "details": "Implementation (ADR-004):\n- infrastructure/i18n/i18n.py:\n  - DOMAIN = \"pomodoro_app\"; LOCALES_DIR = resources/locales\n  - load_locale(lang_code): gettext.translation(DOMAIN, LOCALES_DIR, languages=[lang_code], fallback=True)\n  - install(lang_code): set global _ = translation.gettext; expose ngettext, pgettext helpers\n  - runtime switch: re-install and emit signal for UI to refresh texts\n- Tools: scripts to extract strings (xgettext/pybabel) and compile .po → .mo; include at build time.\n- GUI integration: call install(settings[\"language\"]) on startup; connect to settings changes to reload translator; retranslateUi pattern in Qt or reassign texts.\n- Plugins: allow plugin_manager to register plugin catalogs; e.g., register_plugin_domain(name, locales_path) returning a translation object for plugin to use.\nDeliverables: i18n module, initial locales for en-US and pt-BR (skeleton), integration hooks in GUI.",
+        "testStrategy": "- Unit: load_locale for non-existent language falls back to default without error.\n- Integration: change language setting; verify main window and tray texts update.\n- Build: compile .po to .mo and confirm files included in PyInstaller artifact.",
+        "priority": "medium",
+        "dependencies": [
+          1,
+          3,
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "i18n core module (domain, locales dir, loader/install, helpers)",
+            "description": "Implement the core gettext-based internationalization module with domain/locale configuration, locale loading, installation, and gettext helper functions.",
+            "dependencies": [],
+            "details": "- File: infrastructure/i18n/i18n.py\n- Constants: DOMAIN = \"pomodoro_app\"; LOCALES_DIR = \"resources/locales\"\n- Function load_locale(lang_code): return gettext.translation(DOMAIN, localedir=LOCALES_DIR, languages=[lang_code], fallback=True)\n- Function install(lang_code):\n  - t = load_locale(lang_code)\n  - Set module-level translation reference and install gettext with t.gettext as _\n  - Expose ngettext = t.ngettext; implement pgettext via t.pgettext if available, else fallback to combining context/message or returning message\n  - Provide normalize_language(lang_code) to map app settings (e.g., en-US -> en_US)\n- Expose API: load_locale, install, ngettext, pgettext, normalize_language\n- Add typing hints and docstrings; ensure idempotent install",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Runtime switching and notification",
+            "description": "Enable switching the active language at runtime by reinstalling the translator and notifying listeners to refresh UI text.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "- Add switch_language(lang_code): normalize -> install(lang_code); if language changed, emit notification\n- Provide event mechanism:\n  - If PySide6 available: I18nSignals(QObject) with language_changed = Signal(str)\n  - Always provide a lightweight callback registry: add_language_listener(cb), remove_language_listener(cb)\n- Ensure no-op if requested language equals current\n- Document thread-safety expectations (emit on GUI thread when using Qt)\n- Deliverables: switch_language API, signal/callbacks, documentation",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Initial locale catalogs (en-US, pt-BR)",
+            "description": "Create skeleton PO catalogs and compiled MO files for en-US and pt-BR under resources/locales with correct directory structure.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "- Directories:\n  - resources/locales/en_US/LC_MESSAGES/pomodoro_app.po\n  - resources/locales/pt_BR/LC_MESSAGES/pomodoro_app.po\n- Initialize headers (Project-Id-Version, Language, Plural-Forms, etc.); add at least one sample msgid\n- Compile to .mo in same LC_MESSAGES directories (temporary manual compile acceptable until scripts exist)\n- Ensure language code normalization mapping covers en-US -> en_US and pt-BR -> pt_BR\n- Add to VCS; mark untranslated entries as fuzzy\n- Deliverables: two .po files and compiled .mo placeholders",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Extraction and build scripts for catalogs",
+            "description": "Create scripts to extract strings and compile catalogs, and integrate into the build process so .mo files are included in artifacts.",
+            "dependencies": [
+              "7.1",
+              "7.3"
+            ],
+            "details": "- Use Babel (pybabel) or gettext toolchain; provide ready-to-run scripts:\n  - scripts/i18n/extract.sh: pybabel extract -F babel.cfg -o resources/locales/messages.pot .\n  - scripts/i18n/update.sh: pybabel update -D pomodoro_app -i resources/locales/messages.pot -d resources/locales -l en_US -l pt_BR\n  - scripts/i18n/compile.sh: pybabel compile -D pomodoro_app -d resources/locales\n- Create babel.cfg mapping for Python sources (and Qt .ui if used)\n- CI/build integration: add steps to run extract/update (optional) and compile prior to packaging\n- Packaging (e.g., PyInstaller): include resources/locales/**/LC_MESSAGES/*.mo via spec or hook\n- Developer docs: how to add a new locale and update catalogs",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "GUI integration (startup install and live retranslate)",
+            "description": "Install the translator on app startup from settings and retranslate MainWindow and Tray UI on language change.",
+            "dependencies": [
+              "7.1",
+              "7.2"
+            ],
+            "details": "- adapters/gui/app.py: call i18n.install(settings[\"language\"]) before creating windows; subscribe to i18n.language_changed\n- settings change handler: when language setting changes, call i18n.switch_language(new_lang)\n- adapters/gui/main_window.py and tray:\n  - Wrap all user-visible strings with _()\n  - Implement retranslateUi()/update_texts() that resets labels, actions, menus\n  - Connect to i18n signal to call update_texts on language change\n- Verify Menu/Tray actions and status bar texts update correctly\n- Document pattern for new widgets: define update_texts and connect at construction",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Plugin translation support",
+            "description": "Allow plugins to register their own gettext domains and locale directories and get translation functions bound to the app language.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "- In i18n module:\n  - register_plugin_domain(name: str, locales_path: str|Path) -> gettext.NullTranslations|GNUTranslations\n  - get_plugin_gettext(name: str) -> Callable[[str], str] returning domain-specific _\n  - Maintain registry {name: (locales_path, translation)}; reload on language change\n- On i18n.switch_language, reload all registered plugin translations for the new language\n- Plugin usage doc: _p = i18n.get_plugin_gettext(\"my_plugin\"); _p(\"Hello\")\n- Validate locales_path existence; fallback to NullTranslations if missing; log warnings\n- Optional: expose plugin ngettext/pgettext if needed",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Tests: fallback, runtime refresh, packaging",
+            "description": "Add unit and integration tests for i18n fallback behavior, runtime UI refresh on language change, plugin translations, and packaging of .mo files.",
+            "dependencies": [
+              "7.1",
+              "7.2",
+              "7.3",
+              "7.4",
+              "7.5",
+              "7.6"
+            ],
+            "details": "- Unit tests:\n  - load_locale with unknown lang returns a translation that yields original strings\n  - install sets global _; pgettext and ngettext proxies work\n  - normalize_language handles en-US/pt-BR mappings\n- Integration (pytest-qt):\n  - Launch MainWindow with en-US, then switch to pt-BR; assert button/menu texts change\n  - Verify i18n.language_changed emitted once per switch\n- Plugin tests:\n  - Temp plugin domain with test locales; assert _p uses correct translation and updates after switch_language\n- Build/packaging:\n  - Run compile script and assert .mo files exist\n  - If using PyInstaller in CI, assert .mo files included in dist; otherwise validate inclusion config\n- Include negative case: missing pt-BR .mo fallback without crash",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "PluginManager (Pluggy) with minimal hooks and security validations",
+        "description": "Implement plugin loading via Pluggy with defined hookspecs, discovery in user folder, SemVer compatibility checks, and declarative permissions validation.",
+        "details": "Implementation (ADR-002, ADR-007, ADR-011, ADR-015):\n- plugin_manager/spec.py (hookspecs): on_app_start(app_ctx), on_timer_tick(elapsed, remaining, state), on_cycle_end(session), provide_settings_ui(parent) -> QWidget|None\n- plugin_manager/manager.py:\n  - Use pluggy.PluginManager(\"pomodoro_app\")\n  - Discovery: ~/.pomodoro/plugins (or platform data dir)/<plugin_name> with plugin.toml and main.py\n  - Read plugin.toml (tomllib/tomli) with required keys: [plugin] name, version, compatible_with; [access] filesystem/network/requires_gui\n  - Validate SemVer compatibility using packaging.specifiers.SpecifierSet and app __version__\n  - Register plugin via importlib.util.spec_from_file_location; module attr hookimpls decorated with pluggy.HookimplMarker(\"pomodoro_app\")\n  - Security policy: deny load if missing or incompatible, log to plugin_errors.log; expose only safe context in app_ctx; mark permissions in registry for auditing; GUI-only plugins must be skipped if GUI not available\n  - Isolated logging: configure logger name plugin.<name>\n- Wire domain events: TimerService.on(\"tick\", pm.hook.on_timer_tick(...)); on cycle_end; call on_app_start during app bootstrap\n- Example plugin in plugins/example_plugin for docs/tests.\nPseudo-code:\npm = pluggy.PluginManager(\"pomodoro_app\"); pm.add_hookspecs(spec)\nfor folder in discover_plugin_folders():\n    meta = parse_toml(folder/\"plugin.toml\")\n    if not compatible(meta[\"plugin\"][\"compatible_with\"], APP_VERSION): log and continue\n    mod = load_module_from_path(f\"plugin_{meta['plugin']['name']}\", folder/\"main.py\")\n    pm.register(mod)\nDeliverables: hookspecs, manager with discovery & validation, integration with core and GUI.",
+        "testStrategy": "- Unit: TOML parsing and SemVer checks; incompatible plugin rejected with proper log.\n- Integration: temp plugin dir with basic on_app_start and on_timer_tick; verify callbacks receive data; ensure permissions flags stored.\n- Security: try plugin missing permissions; ensure defaults and warnings; malicious plugin raising exception does not crash app (handled/logged).",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2,
+          3,
+          7
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define Pluggy hookspecs",
+            "description": "Create hookspecs for plugin lifecycle and UI contribution.",
+            "dependencies": [],
+            "details": "- File: plugin_manager/spec.py\n- Define HookSpecMarker(\"pomodoro_app\") and hooks:\n  - on_app_start(app_ctx)\n  - on_timer_tick(elapsed, remaining, state)\n  - on_cycle_end(session)\n  - provide_settings_ui(parent) -> QWidget or None\n- Type hints and docstrings for each hook\n- Export a function add_hookspecs(pm: pluggy.PluginManager) to register specs\n- Acceptance: Pluggy can import spec module and pm.add_hookspecs works",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement plugin discovery strategy",
+            "description": "Resolve user plugin directory and scan for candidate plugin folders.",
+            "dependencies": [],
+            "details": "- File: plugin_manager/manager.py (Discovery section)\n- Determine base dir: use platformdirs.user_data_dir(\"pomodoro_app\") or fallback to ~/.pomodoro/plugins\n- Final dir: <base>/plugins\n- Optional env override POMODORO_PLUGIN_DIR for tests/dev\n- Discover children where both plugin.toml and main.py exist\n- Return list of pathlib.Path entries with stable ordering (sorted)\n- Create directory if missing\n- Acceptance: Given a temp dir with sample plugin folders, discovery returns expected set",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Parse and validate plugin.toml metadata",
+            "description": "Read plugin.toml and validate required fields including permissions.",
+            "dependencies": [
+              "8.2"
+            ],
+            "details": "- Read with tomllib (py>=3.11) or tomli fallback\n- Required sections/keys:\n  - [plugin]: name (str, slug-like), version (SemVer string), compatible_with (PEP 440 specifier string)\n  - [access]: filesystem (bool, default false), network (bool, default false), requires_gui (bool, default false)\n- Validate: unique name, safe characters [a-zA-Z0-9_-], version is valid Version\n- Return a dataclass PluginMeta with fields and source path\n- On missing/invalid, raise PluginMetaError with reasons\n- Acceptance: Unit tests cover valid/invalid TOML cases and defaults",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "SemVer compatibility checks",
+            "description": "Validate plugin compatibility using packaging specifiers against app version.",
+            "dependencies": [
+              "8.3"
+            ],
+            "details": "- Use packaging.version.Version for app __version__\n- Use packaging.specifiers.SpecifierSet(meta.compatible_with)\n- Function is_compatible(meta: PluginMeta, app_version: Version) -> bool\n- Log decision reason on mismatch (e.g., requires >=1.2,<2.0; app is 1.1.0)\n- Acceptance: Unit tests for pass/fail matrix across specifiers",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Loader and registration via importlib + Pluggy",
+            "description": "Load module from path, gate GUI-only plugins, and register hookimpls.",
+            "dependencies": [
+              "8.1",
+              "8.2",
+              "8.3",
+              "8.4"
+            ],
+            "details": "- Build PluginManager(\"pomodoro_app\"); add hookspecs\n- For each discovered folder:\n  - Parse metadata (reuse 8.3) and compatibility (8.4)\n  - If meta.access.requires_gui and GUI not available (no Qt or headless), skip with log\n  - Load module via importlib.util.spec_from_file_location and module_from_spec; execute in isolated module name: pomodoro_plugin_<safe_name>\n  - Require plugin uses pluggy.HookimplMarker(\"pomodoro_app\"); registration: pm.register(module, name=meta.plugin.name)\n  - Maintain registry dict with meta and resolved permissions\n- Errors during load/registration are caught and recorded for logging (7) and auditing\n- Acceptance: Integration test loads a valid plugin and pm.get_plugins() includes it",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Security posture and permission model",
+            "description": "Enforce deny-by-default permissions and expose restricted app_ctx.",
+            "dependencies": [
+              "8.1",
+              "8.3",
+              "8.5"
+            ],
+            "details": "- Define SafeAppContext with limited methods/data (no direct file/network handles)\n- Map [access] flags to registry for auditing; deny load if required flags missing or invalid types\n- Prevent implicit escalation: default all permissions false\n- For filesystem/network usage, only allow via explicit app-provided facades (stubs for now) and record intent\n- Skip or degrade provide_settings_ui when GUI unavailable\n- Ensure plugin cannot mutate core singletons via app_ctx; pass copies or wrappers\n- Acceptance: Attempting to load plugin with missing [plugin] or malformed [access] denies load with recorded reason",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Per-plugin logging and error channel",
+            "description": "Configure logger hierarchy plugin.<name> and a plugin_errors.log sink.",
+            "dependencies": [
+              "8.5"
+            ],
+            "details": "- Create logger per plugin: logging.getLogger(f\"plugin.{name}\")\n- Configure a dedicated FileHandler plugin_errors.log (in user data dir) for loader and hook invocation errors\n- Ensure plugin loggers inherit app handlers but can be tuned; avoid duplicate logs via propagate settings\n- Include correlation fields: plugin name, phase (discovery/load/hook), exception traceback\n- Acceptance: When a plugin raises in a hook, error is written to plugin_errors.log without crashing app",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Wire domain events to plugin hooks",
+            "description": "Bridge TimerService and app bootstrap to Pluggy hooks with isolation.",
+            "dependencies": [
+              "8.1",
+              "8.5"
+            ],
+            "details": "- On application start, construct SafeAppContext and call pm.hook.on_app_start(app_ctx=...)\n- Subscribe TimerService events:\n  - on_tick -> pm.hook.on_timer_tick(elapsed=..., remaining=..., state=...)\n  - on_cycle_end -> pm.hook.on_cycle_end(session=...)\n- Wrap hook invocations to isolate exceptions per plugin; continue others\n- For GUI, expose a bridge to call provide_settings_ui when assembling settings dialog; skip in headless\n- Acceptance: Integration test verifies hooks receive events and exceptions do not propagate",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 9,
+            "title": "Example plugin for docs/tests",
+            "description": "Create a minimal reference plugin demonstrating hooks and metadata.",
+            "dependencies": [
+              "8.1",
+              "8.3",
+              "8.4",
+              "8.5"
+            ],
+            "details": "- Location: plugins/example_plugin/\n- plugin.toml with:\n  - [plugin] name=\"example_plugin\", version=\"0.1.0\", compatible_with=\">=1.0,<2.0\"\n  - [access] filesystem=false, network=false, requires_gui=false\n- main.py implementing:\n  - on_app_start logs a message\n  - on_timer_tick counts ticks\n  - provide_settings_ui returns None (headless-safe)\n- Include README snippet for usage\n- Acceptance: Discovery finds it under a temp plugin root and loads it successfully",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 10,
+            "title": "Test suite: unit and integration",
+            "description": "Cover TOML, SemVer, permissions, hooks, GUI gating, and failure isolation.",
+            "dependencies": [
+              "8.1",
+              "8.2",
+              "8.3",
+              "8.4",
+              "8.5",
+              "8.6",
+              "8.7",
+              "8.8",
+              "8.9"
+            ],
+            "details": "- Unit tests:\n  - TOML parsing defaults and validation errors\n  - SemVer compatibility matrix\n  - Permission defaults and deny-on-missing\n- Integration tests:\n  - Temporary plugin dirs loaded; callbacks invoked with correct data\n  - GUI-only plugin skipped when GUI unavailable\n  - Plugin raising exceptions during hooks does not crash; errors logged\n  - Per-plugin logger writes entries; plugin_errors.log created\n- CI-friendly: no real network/filesystem writes beyond temp dirs; use monkeypatch\n- Acceptance: All tests pass across supported platforms",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Update checker with cached remote JSON and non-intrusive UX",
+        "description": "Implement periodic update checks against a remote JSON definition, with caching, offline-first behavior, and optional user-triggered check.",
+        "details": "Implementation (ADR-006):\n- infrastructure/update/checker.py:\n  - Config: URL from settings or constant; interval (e.g., once per day), timeout 3–5s; opt-out in settings.\n  - Cache file in user data dir: {\"last_checked\": ts, \"last_result\": {...}}\n  - Fetch via urllib.request or httpx/requests if allowed; parse fields {version, changelog, url, hash?}\n  - Compare versions using packaging.version.Version; if newer, emit signal to UI/NotificationService\n  - Expose check_now() and schedule(auto=True) using background thread or Qt timer (no UI blocking)\n  - UX: Show tray/notification with changelog summary and button to open download URL; never auto-download.\nPseudo-code:\nclass UpdateChecker(QtCore.QObject):\n    update_available = QtCore.Signal(str, str, str)  # version, changelog, url\n    def schedule(self): QtCore.QTimer.singleShot(5_000, self._maybe_check)\n    def _maybe_check(self):\n        if cache_fresh(): return\n        threading.Thread(target=self._check_worker, daemon=True).start()\n    def _check_worker(self):\n        try: data = json.load(urlopen(URL, timeout=4))\n        except Exception: log and return\n        if Version(data['version']) > Version(APP_VERSION): self.update_available.emit(...)\nDeliverables: checker module, integration in GUI (menu action \"Check for updates\"), notification wiring.",
+        "testStrategy": "- Unit: version comparison logic with various SemVer cases; cache freshness handling.\n- Integration: monkeypatch network to return sample JSON; assert signals emitted; simulate offline error and ensure no UI block.\n- Manual: verify notification text and that clicking action opens URL via QDesktopServices.openUrl.",
+        "priority": "medium",
+        "dependencies": [
+          1,
+          3,
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Cache design and freshness policy",
+            "description": "Design and implement a persistent cache for update checks in the user data directory with freshness checks to avoid redundant network calls.",
+            "dependencies": [],
+            "details": "Implement in infrastructure/update/checker.py. Use platformdirs.user_data_dir('pomodoro_app', appauthor=None) to store a file update_check.json. Schema: {\"last_checked\": unix_ts_int_utc, \"last_result\": {\"version\": str, \"changelog\": str, \"url\": str, \"hash\": str|null}}. Provide functions: load_cache(path) -> dict|None (gracefully handle missing/corrupt files), save_cache(path, data) with atomic write (write to temp then rename), is_cache_fresh(last_checked, interval_s) -> bool. Default interval: 86400s (once/day) configurable via settings. Offline-first behavior: cache only gates frequency; do not surface stale last_result as a new update. Ensure directory creation and permissions. Log parse errors and fall back to empty cache.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Networking and JSON parsing",
+            "description": "Fetch the remote update definition JSON with timeout, custom user-agent, and robust error handling.",
+            "dependencies": [
+              "9.1"
+            ],
+            "details": "Implement fetch_update_json(url, timeout_s) using urllib.request (avoid extra deps). Build Request with headers: User-Agent: \"PomodoroApp/{APP_VERSION} ({platform}; {python_ver})\", Accept: application/json. Timeout: 3–5s from settings. Handle URLError, HTTPError, timeout, and SSL errors by logging and returning None. Parse response as JSON with json.loads, validate required fields: version (str), changelog (str), url (str). Optionally accept hash. Validate the download URL via urllib.parse.urlparse (scheme http/https). Do not raise; return a dict on success or None on failure.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Versioning and pre-release handling",
+            "description": "Compare remote and local versions using packaging.version with rules for pre-releases.",
+            "dependencies": [
+              "9.2"
+            ],
+            "details": "Introduce helper compare_versions(remote_ver_str, local_ver_str, allow_prerelease=False) -> bool that returns True if a newer update should be surfaced. Use packaging.version.Version for both. Rules: if remote is pre-release and allow_prerelease is False, do not notify unless local is also pre-release and remote > local. If remote is stable and greater than local (stable or pre), notify. Handle invalid version strings by logging and skipping notification. Normalize versions consistently. Expose allow_prerelease via settings (default False).",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Scheduling, threading, and public API",
+            "description": "Provide check_now() and schedule(auto=True) APIs with Qt timer kickoff, background worker thread, settings opt-out, and single-flight guard.",
+            "dependencies": [
+              "9.1",
+              "9.2",
+              "9.3"
+            ],
+            "details": "Create class UpdateChecker(QtCore.QObject) in infrastructure/update/checker.py with signal update_available(version:str, changelog:str, url:str). Methods: schedule(auto=True) uses QtCore.QTimer.singleShot(initial_delay_ms) to call _maybe_check(); _maybe_check() loads cache and returns early if is_cache_fresh and auto=True; otherwise spawns threading.Thread(target=_check_worker, daemon=True) guarded by a threading.Lock to prevent concurrent checks. check_now() bypasses freshness and invokes _check_worker in a background thread. _check_worker(): read settings (URL, timeout, interval, opt-out). If opt-out True, return. Call fetch_update_json(); on success, update cache last_checked and last_result. If compare_versions(...) True, emit update_available(remote_version, changelog, url). Ensure no UI blocking; catch and log exceptions. Respect interval via cache freshness gate only.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "UX and GUI integration",
+            "description": "Wire the update signal to NotificationService and add a GUI action for manual checks without auto-download.",
+            "dependencies": [
+              "9.4"
+            ],
+            "details": "Connect UpdateChecker.update_available to a handler that calls NotificationService.notify with title like \"Update available v{version}\" and message containing a short changelog summary. Provide an action/button \"Download\" that opens the URL via Qt.QDesktopServices.openUrl. Never auto-download. Add a menu or tray action \"Check for updates\" in the GUI that calls checker.check_now(). Ensure notifications are non-intrusive (use tray/notification per NotificationService fallback chain). Consider i18n of strings. Truncate overly long changelogs and include an ellipsis.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Testing: cache, networking, versioning, and integration",
+            "description": "Implement unit and integration tests for cache freshness, version comparisons, network behaviors, and UI signaling.",
+            "dependencies": [
+              "9.1",
+              "9.2",
+              "9.3",
+              "9.4",
+              "9.5"
+            ],
+            "details": "Unit tests: cache load/save with tmp_path, atomic write, and freshness boundaries; version comparison across SemVer, pre-release, build metadata, and invalid versions. Networking: monkeypatch urllib to simulate success, timeout, HTTP error, invalid JSON; verify None on failure and that User-Agent header is set. Integration (pytest-qt): instantiate UpdateChecker with a test settings object and temp cache; simulate remote JSON responses; assert that update_available signal emits only when appropriate; verify check_now() bypasses freshness; verify opt-out prevents network calls. Performance: ensure schedule() returns immediately and no UI block (thread used).",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Packaging (PyInstaller) and CI/CD (GitHub Actions) for multi-platform",
+        "description": "Create PyInstaller spec including resources and plugins path, and configure GitHub Actions matrix for lint, tests, security audit, and multi-OS builds with release by tag.",
+        "details": "Implementation (ADR-013, ADR-009):\n- Packaging:\n  - Create pomodoro_app.spec: Analysis hiddenimports for PySide6 (QtCore, QtGui, QtWidgets), pluggy, packaging; datas include resources/locales/*.mo, icons, themes; set binaries for platform plugins (Qt)\n  - Runtime plugin dir discovery: ~/.pomodoro/plugins (document), ensure created on first run\n  - Entry point: pomodoro_app.__main__:main\n  - Test building on at least one OS locally\n- CI/CD (.github/workflows/build.yml):\n  - Triggers: push PR, tags v*.*.* for release\n  - Strategy matrix: os: [ubuntu-latest, windows-latest, macos-latest]; python: ['3.12']\n  - Steps:\n    - actions/checkout\n    - setup-python\n    - cache pip\n    - pip install .[dev]\n    - ruff check . && black --check .\n    - pytest -q\n    - pip-audit || (allow failures on some OS if necessary)\n    - Build: run PyInstaller with spec; upload artifacts\n    - On tag: create release, attach artifacts (exe, AppImage/tar.gz, dmg)\nYAML sketch:\nname: ci\non: [push, pull_request, workflow_dispatch]\njobs:\n  build:\n    strategy: {matrix: {os: [ubuntu-latest, windows-latest, macos-latest], python: ['3.12']}}\n    runs-on: ${{ matrix.os }}\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with: {python-version: ${{ matrix.python }}}\n      - run: pip install .[dev]\n      - run: ruff check .\n      - run: black --check .\n      - run: pytest -q\n      - run: pip-audit || true\n      - run: python -m PyInstaller pomodoro_app.spec\n      - uses: actions/upload-artifact@v4\n        with: {name: dist-${{ runner.os }}, path: dist/}\n  release:\n    needs: build\n    if: startsWith(github.ref, 'refs/tags/v')\n    ...\nDeliverables: spec file, workflow YAML, docs for artifacts and installation.",
+        "testStrategy": "- CI dry-run on branches: verify lint/test/audit stages pass.\n- Build validation: artifacts produced per OS; smoke-run app to ensure GUI launches (where possible headless flags applied).\n- Release test: tag a pre-release and ensure assets attach; verify locales and icons present in bundle; verify plugin discovery path exists.",
+        "priority": "medium",
+        "dependencies": [
+          1,
+          3,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create PyInstaller spec (pomodoro_app.spec)",
+            "description": "Author and validate a PyInstaller spec that bundles the app entry point, resources, and Qt binaries.",
+            "dependencies": [],
+            "details": "Scope:\n- File: pomodoro_app.spec\n- Entry point: pomodoro_app.__main__:main\n- Hidden imports: PySide6.QtCore, PySide6.QtGui, PySide6.QtWidgets, pluggy, packaging\n- Datas: resources/locales/*.mo → resources/locales; resources/icons/* → resources/icons; resources/themes/**/* → resources/themes\n- Binaries: include Qt platform plugins (platforms, imageformats) for PySide6; ensure runtime hook sets QT_PLUGIN_PATH at run-time to packaged directory\n- Runtime hooks: add a runtime hook to ensure Qt plugin path resolution and to log startup errors early\n- Build mode: one-folder per-OS builds acceptable; single-file optional\nAcceptance criteria per platform:\n- Linux: Built app starts without 'Could not load the Qt platform plugin \"xcb\"' errors; resources/locales/*.mo present in dist\n- Windows: Built .exe launches without missing DLL or platform plugin errors; icons/themes available\n- macOS: Built .app bundle runs (via open or direct binary); Qt plugins embedded; resources available",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement and document plugin runtime directory",
+            "description": "Ensure a user plugin directory is discovered and created on first run and is documented.",
+            "dependencies": [],
+            "details": "Scope:\n- Path: ~/.pomodoro/plugins\n- Implement on startup: if directory does not exist, create it; log path on startup\n- Expose helper: get_plugin_dir() for other components\n- Document path and usage in docs/README (later consolidated in docs task)\nAcceptance criteria per platform:\n- Linux: ~/.pomodoro/plugins auto-created on first run\n- Windows: %USERPROFILE%\\.pomodoro\\plugins auto-created on first run\n- macOS: /Users/<user>/.pomodoro/plugins auto-created on first run\n- App logs show the directory path on startup",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Local build validation of spec",
+            "description": "Build locally on at least one OS, fix hooks/paths until the app starts and resources are present.",
+            "dependencies": [
+              "10.1",
+              "10.2"
+            ],
+            "details": "Scope:\n- Commands: pip install .[dev]; python -m PyInstaller pomodoro_app.spec\n- Validate the dist output: ensure locales (.mo), icons, themes packaged\n- Test run: launch with headless-friendly settings where necessary (e.g., QT_QPA_PLATFORM=offscreen or '-platform offscreen')\n- Adjust spec (datas, binaries, runtime hooks) based on findings\nAcceptance criteria:\n- On the developer OS, built app starts successfully\n- Resource presence verified: at least one .mo file and icons are in dist\n- No missing Qt platform plugin errors",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Configure GitHub Actions workflow matrix",
+            "description": "Create .github/workflows/build.yml with multi-OS matrix and Python 3.12, including dependency caching.",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "Scope:\n- Triggers: push, pull_request, workflow_dispatch (release handled separately)\n- Matrix: os = [ubuntu-latest, windows-latest, macos-latest]; python = ['3.12']\n- Steps: actions/checkout@v4; actions/setup-python@v5 with cache: 'pip'; pip install .[dev]\n- Prepare artifact naming convention: dist-${{ runner.os }}\nAcceptance criteria per platform:\n- Linux/Windows/macOS jobs start and complete setup successfully\n- Python 3.12 used; pip cache hits on subsequent runs",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Add lint, tests, and security audit stages",
+            "description": "Integrate ruff, black --check, pytest, and pip-audit into the CI workflow.",
+            "dependencies": [
+              "10.4"
+            ],
+            "details": "Scope:\n- Steps: ruff check .; black --check .; pytest -q; pip-audit (allow non-blocking via continue-on-error or '|| true')\n- Test summaries as job output; fail build on lint/test failures\nAcceptance criteria per platform:\n- All OS run ruff, black, pytest; failures block subsequent steps\n- pip-audit runs on all OS and does not block if vulnerabilities are found (per policy)\n- Test artifacts (logs) visible in job output",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "CI build stage and artifact upload",
+            "description": "Run PyInstaller in CI and upload per-OS artifacts.",
+            "dependencies": [
+              "10.5"
+            ],
+            "details": "Scope:\n- Build: python -m PyInstaller pomodoro_app.spec\n- Artifact upload: actions/upload-artifact@v4 with name dist-${{ runner.os }}, path dist/\n- Optional packaging: Linux tar.gz (or AppImage if tooling available), Windows .zip/.exe, macOS .dmg (or .zip of .app)\n- Ensure resources (locales/icons/themes) and Qt plugins are included\nAcceptance criteria per platform:\n- Linux: artifact contains runnable binary and resources/locales/*.mo; Qt platform plugins present\n- Windows: artifact includes the .exe and required DLLs; resources present\n- macOS: artifact includes .app (and .dmg if produced); resources present; codesign not required for CI\n- Artifact names follow convention and are downloadable from CI",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Release job with tag-triggered publishing",
+            "description": "Create a release job that triggers on tags v*.*.* and attaches built artifacts.",
+            "dependencies": [
+              "10.6"
+            ],
+            "details": "Scope:\n- Trigger: if startsWith(github.ref, 'refs/tags/v')\n- Needs: build\n- Use action (e.g., softprops/action-gh-release or actions/create-release) to create release and upload assets\n- Asset mapping: attach Windows exe/zip, Linux tar.gz/AppImage, macOS dmg/zip\n- Version alignment: verify tag matches application version (pyproject.toml) and fail if mismatched\nAcceptance criteria per platform:\n- Creating a tag vX.Y.Z triggers release; assets from all OS are attached\n- Release notes include build matrix summary\n- Version check passes when tag matches package version",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Automated smoke run and artifact sanity checks",
+            "description": "Add post-build smoke tests to ensure the packaged app starts and required files exist.",
+            "dependencies": [
+              "10.6"
+            ],
+            "details": "Scope:\n- Add a step after build to run the produced binary headlessly\n  - Linux: env QT_QPA_PLATFORM=offscreen ./dist/<app>/... or pass '-platform offscreen'\n  - Windows: run .exe with '-platform offscreen'\n  - macOS: run binary within .app Contents/MacOS with '-platform offscreen'\n- Introduce optional env (e.g., POMODORO_EXIT_AFTER_START=1) to auto-exit after init\n- Sanity checks: verify presence of resources/locales/*.mo, icons, themes in artifact\nAcceptance criteria per platform:\n- Linux/Windows/macOS smoke run completes within timeout with exit code 0\n- Sanity checks pass: locales and icons found in artifact\n- Failures block release job",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 9,
+            "title": "Documentation for install, artifacts, and plugins",
+            "description": "Write docs covering installation from releases, artifact contents, platform notes, and plugin directory.",
+            "dependencies": [
+              "10.1",
+              "10.2",
+              "10.6",
+              "10.7",
+              "10.8"
+            ],
+            "details": "Scope:\n- Installation instructions per OS (Linux, Windows, macOS), including prerequisites (if any) and how to run\n- Describe artifact contents (where the binary/app is, where locales/icons/themes are)\n- Document plugin directory: ~/.pomodoro/plugins and OS-specific paths; how to add plugins\n- Note headless flags and troubleshooting (Qt platform plugin errors)\n- Deliverables: README sections and/or docs pages; link to Releases\nAcceptance criteria per platform:\n- Linux/Windows/macOS instructions verified using CI artifacts\n- Docs mention that locales/resources are packaged and how to verify\n- Plugin path documented and matches runtime behavior",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-08-11T11:02:04.411Z",
+      "updated": "2025-08-11T11:02:04.411Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
