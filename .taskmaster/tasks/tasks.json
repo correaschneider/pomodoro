@@ -89,8 +89,8 @@
               "1.4",
               "1.6"
             ],
-            "details": "- tests/unit/test_logging.py:\n  - Use a temporary directory by monkeypatching platformdirs to ensure isolation.\n  - Call setup_logging(); assert logs dir and app.log/events.log/plugin_errors.log exist.\n  - Patch RotatingFileHandler maxBytes small to force rotation; write enough bytes; assert .1 backup exists.\n  - Emit records via pomodoro.core and plugin.<name>; assert they appear in events.log and plugin_errors.log respectively (and optionally in app.log due to propagation).\n- tests/integration/test_smoke.py:\n  - Run python -m pomodoro_app --smoke in a subprocess; assert exit code 0 and log files created.\n- Ensure tests pass cross-platform (Linux/macOS/Windows) and avoid hardcoded paths.\nAcceptance criteria:\n- All tests pass locally (pytest -q) with the above behaviors.\n- Smoke command produces expected log outputs and rotated files when thresholds are met.",
-            "status": "pending",
+            "details": "- tests/unit/test_logging.py:\n  - Use a temporary directory by monkeypatching platformdirs to ensure isolation.\n  - Call setup_logging(); assert logs dir and app.log/events.log/plugin_errors.log exist.\n  - Patch RotatingFileHandler maxBytes small to force rotation; write enough bytes; assert .1 backup exists.\n  - Emit records via pomodoro.core and plugin.<name>; assert they appear in events.log and plugin_errors.log respectively (and optionally in app.log due to propagation).\n- tests/integration/test_smoke.py:\n  - Run python -m pomodoro_app --smoke in a subprocess; assert exit code 0 and log files created.\n- Ensure tests pass cross-platform (Linux/macOS/Windows) and avoid hardcoded paths.\nAcceptance criteria:\n- All tests pass locally (pytest -q) with the above behaviors.\n- Smoke command produces expected log outputs and rotated files when thresholds are met.\n<info added on 2025-08-13T10:39:22.362Z>\n- tests/unit/test_logging.py (additional validations):\n  - Verify idempotency: call setup_logging() twice; assert the number of handlers on the configured loggers does not increase on the second call and that emitting a test record results in a single line written (no duplicate entries).\n- tests/integration/test_smoke.py (extend):\n  - Invoke python -m pomodoro_app --smoke using sys.executable (ensuring the test venv), with environment variables set to avoid GUI startup (e.g., QT_QPA_PLATFORM=offscreen and POMODORO_APP_NO_GUI=1).\n  - After execution, open app.log and events.log and assert that smoke-specific messages were written (e.g., lines containing the “SMOKE” marker); plugin_errors.log should remain empty unless a smoke plugin error is intentionally emitted.\n- Constraints:\n  - Do not import or start any GUI components during tests.\n  - Ensure pytest -q collects tests without errors (no import-time side effects).\n  - Keep tests cross-platform and avoid hardcoded paths.\n</info added on 2025-08-13T10:39:22.362Z>",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T10:37:26.595Z",
+      "updated": "2025-08-13T12:23:08.912Z",
       "description": "Tasks for master context"
     }
   }
