@@ -28,7 +28,7 @@
               "1.1"
             ],
             "details": "- Use PEP 621 in pyproject.toml with name 'pomodoro-app' (distribution) and package 'pomodoro_app'.\n- Requires Python >=3.12.\n- Runtime deps: PySide6, pluggy, packaging, platformdirs, (optionally) tomli-w if needed; i18n tooling (babel) can be dev-only.\n- Optional extras:\n  - notifications: notify2; sys_platform == 'linux'\n  - win_toast: win10toast; sys_platform == 'win32'\n- Dev extras: pytest, pytest-qt, black, ruff, pip-audit, babel (if used).\n- Entry point:\n  [project.scripts]\n  pomodoro-app = \"pomodoro_app.__main__:main\"\n- Choose a build backend (e.g., setuptools) compatible with PEP 621.\nAcceptance criteria:\n- pip install -e .[dev] succeeds on a clean environment.\n- pip install -e .[notifications,win_toast] resolves platform-specific extras without errors.\n- Entry point declared for pomodoro-app (will be exercised in bootstrap subtask).\n<info added on 2025-08-13T10:08:34.008Z>\n[build-system]\nrequires = [\"setuptools>=64\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"pomodoro-app\"\nversion = \"0.1.0\"\nrequires-python = \">=3.12\"\ndependencies = [\n  \"PySide6\",\n  \"pluggy\",\n  \"packaging\",\n  \"platformdirs\",\n]\n\n[project.optional-dependencies]\nnotifications = [\"notify2; sys_platform == 'linux'\"]\nwin_toast = [\"win10toast; sys_platform == 'win32'\"]\ndev = [\"pytest\", \"pytest-qt\", \"black\", \"ruff\", \"pip-audit\", \"babel\"]\n\n[project.scripts]\npomodoro-app = \"pomodoro_app.__main__:main\"\n</info added on 2025-08-13T10:08:34.008Z>",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -39,8 +39,8 @@
               "1.1",
               "1.2"
             ],
-            "details": "- Configure ruff (tool.ruff) and black (tool.black) either in pyproject.toml or separate config files; include line-length and target Python 3.12.\n- Add pytest.ini with qt_api = pyside6 and useful defaults (testpaths = tests).\n- Create .gitignore covering Python, venvs, build artifacts, logs/, .pytest_cache, .ruff_cache, .mypy_cache.\n- Add CONTRIBUTING.md or docs/semantic_commits.md describing semantic commit message format.\n- Optionally add a basic pre-commit config referencing ruff/black (informational, not required).\nAcceptance criteria:\n- ruff . and black --check . run without crashing on a fresh checkout.\n- pytest -q collects tests (even if zero at this stage) without configuration errors.\n- Documentation for commit conventions exists in repo.",
-            "status": "pending",
+            "details": "- Configure ruff (tool.ruff) and black (tool.black) either in pyproject.toml or separate config files; include line-length and target Python 3.12.\n- Add pytest.ini with qt_api = pyside6 and useful defaults (testpaths = tests).\n- Create .gitignore covering Python, venvs, build artifacts, logs/, .pytest_cache, .ruff_cache, .mypy_cache.\n- Add CONTRIBUTING.md or docs/semantic_commits.md describing semantic commit message format.\n- Optionally add a basic pre-commit config referencing ruff/black (informational, not required).\nAcceptance criteria:\n- ruff . and black --check . run without crashing on a fresh checkout.\n- pytest -q collects tests (even if zero at this stage) without configuration errors.\n- Documentation for commit conventions exists in repo.\n<info added on 2025-08-13T10:16:26.062Z>\n- Add the configuration directly to pyproject.toml:\n  [tool.black]\n  line-length = 100\n  target-version = [\"py312\"]\n\n  [tool.ruff]\n  line-length = 100\n  target-version = \"py312\"\n  src = [\"pomodoro_app\", \"tests\"]\n\n- Create pytest.ini with:\n  [pytest]\n  qt_api = pyside6\n  testpaths = tests\n\n- Create .gitignore covering:\n  __pycache__/\n  *.py[cod]\n  *.pyo\n  .Python\n  .venv/\n  venv/\n  env/\n  .env\n  build/\n  dist/\n  *.egg-info/\n  .pytest_cache/\n  .ruff_cache/\n  .mypy_cache/\n  .coverage\n  coverage.xml\n  .DS_Store\n  .idea/\n  .vscode/\n  logs/\n\n- Add docs/semantic_commits.md with a concise Conventional Commits guide:\n  - Format: type(scope): short description\n  - Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert\n  - Scope: optional, lower-kebab-case (e.g., core, gui, infra-db)\n  - Subject: imperative, no trailing period, <= 72 chars\n  - Body: optional; why/how, wrapped at 72 chars\n  - Footer: issue references; BREAKING CHANGE: <description> for breaking changes\n  - Examples for feat/fix and a breaking change\n\n- Optionally add .pre-commit-config.yaml:\n  repos:\n    - repo: https://github.com/psf/black\n      rev: 24.4.2\n      hooks:\n        - id: black\n    - repo: https://github.com/astral-sh/ruff-pre-commit\n      rev: v0.5.2\n      hooks:\n        - id: ruff\n          args: [--fix]\n        - id: ruff-format\n\n- Constraint: Do not modify any application code; only add these configuration and documentation files.\n</info added on 2025-08-13T10:16:26.062Z>",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T10:07:04.409Z",
+      "updated": "2025-08-13T10:13:22.130Z",
       "description": "Tasks for master context"
     }
   }
