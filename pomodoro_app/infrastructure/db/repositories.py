@@ -3,6 +3,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import datetime
 from typing import Any, Iterable, Sequence
+import json
 from uuid import UUID
 
 from pomodoro_app.core.models import Session, SessionType, TimerState
@@ -108,6 +109,40 @@ class SessionRepository:
         )
 
 
-__all__ = ["SessionRepository"]
+class SettingsRepository:
+    """Key-value settings repository with JSON-encoded values."""
+
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self._conn = conn
+
+    def get(self, key: str, default: Any | None = None) -> Any | None:
+        row = self._conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+        if not row:
+            return default
+        try:
+            return json.loads(row[0])
+        except Exception:
+            logger.exception("Failed to decode JSON for settings key '%s'", key)
+            return default
+
+    def set(self, key: str, value: Any) -> None:
+        try:
+            raw = json.dumps(value)
+        except Exception:
+            logger.exception("Failed to encode JSON for settings key '%s'", key)
+            raise
+        self._conn.execute(
+            """
+            INSERT INTO settings(key, value) VALUES(?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+            """,
+            (key, raw),
+        )
+        try:
+            self._conn.commit()
+        except Exception:
+            logger.exception("Commit failed after settings upsert for key '%s'", key)
+            raise
 
 
+__all__ = ["SessionRepository", "SettingsRepository"]

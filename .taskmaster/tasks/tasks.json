@@ -595,7 +595,7 @@
               "6.2"
             ],
             "details": "Files: infrastructure/db/repositories.py. Class SettingsRepository with constructor(conn, logger). Methods: get(key: str, default=None) -> Any reading SELECT value FROM settings WHERE key=? and returning json.loads(row[0]) if present else default; set(key: str, value: Any) persisting json.dumps(value) via INSERT ... ON CONFLICT(key) DO UPDATE SET value=excluded.value. Optional list_all() for debugging. Validate JSON serialization errors and log appropriately.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T13:51:51.603Z",
+      "updated": "2025-08-13T14:28:56.336Z",
       "description": "Tasks for master context"
     }
   }
