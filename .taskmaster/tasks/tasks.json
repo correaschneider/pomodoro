@@ -606,7 +606,7 @@
               "6.3"
             ],
             "details": "Files: infrastructure/db/repositories.py (or separate infrastructure/db/stats.py). Class StatsService with constructor(session_repo, conn, logger). Methods: totals_by_type(start, end) -> {FOCUS: seconds, BREAK: seconds}; count_completed_and_cancelled(start, end); streaks/recent_summary(); daily_totals(start, end) grouping by date(started_at). Define interruption as non-completed/cancelled focus sessions (state not completed) and expose count_interruptions(start, end). Prefer SQL aggregates for performance and fallback to repository iteration when simpler.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T14:28:56.336Z",
+      "updated": "2025-08-13T14:35:28.378Z",
       "description": "Tasks for master context"
     }
   }
