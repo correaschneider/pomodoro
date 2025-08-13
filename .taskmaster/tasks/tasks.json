@@ -309,7 +309,7 @@
               "3.4"
             ],
             "details": "In MainWindow, add init parameter tray_enabled: bool. Override closeEvent: if tray_enabled, event.ignore(); self.hide(); update StatusBar. Otherwise, proceed to close. Ensure app.setQuitOnLastWindowClosed(False) from subtask 1 is honored. Add a Qt signal requestStop for clean shutdown; in GuiController/setup, connect QApplication.instance().aboutToQuit to service.stop and any necessary bridge detach. Ensure resources/signals are disconnected in teardown().",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T13:32:07.059Z",
+      "updated": "2025-08-13T13:34:12.382Z",
       "description": "Tasks for master context"
     }
   }

@@ -23,10 +23,12 @@ class MainWindow(QtWidgets.QMainWindow):
     resumeRequested = QtCore.Signal()
     stopRequested = QtCore.Signal()
     settingsRequested = QtCore.Signal()
+    gracefulStopRequested = QtCore.Signal()  # Emitted when user intends to quit app
 
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(_("Pomodoro"))
+        self._tray_enabled = False
         self._build_ui()
         self._connect_ui_signals()
 
@@ -118,6 +120,25 @@ class MainWindow(QtWidgets.QMainWindow):
             dlg.exec()
         except Exception:
             logger.exception("failed to open settings dialog")
+
+    # --- Tray integration helpers -------------------------------------------
+    def setTrayEnabled(self, enabled: bool) -> None:
+        self._tray_enabled = bool(enabled)
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # type: ignore[override]
+        # If tray is enabled, hide to tray instead of quitting
+        if self._tray_enabled:
+            event.ignore()
+            self.hide()
+            self.statusBar().showMessage(_("Hidden to tray"))
+            return
+
+        # Otherwise, request graceful stop so controller can shutdown services
+        try:
+            self.gracefulStopRequested.emit()
+        except Exception:
+            logger.exception("failed emitting gracefulStopRequested")
+        event.accept()
 
 
 __all__ = ["MainWindow"]
