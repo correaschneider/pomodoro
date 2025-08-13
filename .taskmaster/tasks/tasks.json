@@ -241,7 +241,7 @@
             "description": "Create QApplication bootstrap, configure high-DPI, logging, and setQuitOnLastWindowClosed(False). Provide entry points to build and show MainWindow later.",
             "dependencies": [],
             "details": "Implement adapters/gui/app.py with: (1) create_app(argv=None) -> QApplication: set high-DPI attributes if needed, instantiate QApplication, set application name/org, setQuitOnLastWindowClosed(False), basic logger setup. (2) translator hook: define a no-op install_translator(gettext_func) to be replaced in Task 7; wrap UI strings using _ = gettext.gettext. (3) run(service, tray_enabled=False): constructs MainWindow via factory/controller, shows it, and starts app.exec(). Ensure app.aboutToQuit is available for graceful shutdown wiring later.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T12:42:05.218Z",
+      "updated": "2025-08-13T13:20:32.931Z",
       "description": "Tasks for master context"
     }
   }
