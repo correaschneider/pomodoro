@@ -326,7 +326,7 @@
               "3.7"
             ],
             "details": "Add tests/integration/test_main_window.py using qtbot: construct QApplication, MainWindow, GuiBridge, and a FakeTimerService exposing start_focus/pause/resume/stop and custom on(event, cb). Simulate clicks (Start, Pause/Resume, Stop); emit bridge.tick/state to mimic domain thread and assert label shows format_mmss(remaining) and Pause/Resume text toggles. Verify closeEvent hides when tray_enabled=True. Add logging for GUI actions using logger 'pomodoro.adapters.gui'; in tests, capture logs to ensure key transitions are logged without errors.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T13:34:12.382Z",
+      "updated": "2025-08-13T13:37:23.194Z",
       "description": "Tasks for master context"
     }
   }
