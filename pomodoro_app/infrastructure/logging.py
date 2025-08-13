@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from logging.handlers import RotatingFileHandler
+import os
 from pathlib import Path
 
 from platformdirs import user_data_dir
@@ -86,4 +87,23 @@ def setup_logging(app_name: str = "pomodoro_app") -> None:
     if not _logger_has_handler_for_path(warnings_logger, app_log_path):
         warnings_logger.addHandler(_create_rotating_file_handler(app_log_path))
 
+    # Allow environment override for local development verbosity
+    env_level_value = os.getenv("POMODORO_LOG_LEVEL")
+    if env_level_value:
+        level = getattr(logging, env_level_value.upper(), None)
+        if isinstance(level, int):
+            app_logger.setLevel(level)
+            core_logger.setLevel(level)
+            plugin_logger.setLevel(level)
 
+
+def get_logger(namespace: str) -> logging.Logger:
+    """Return a namespaced logger using Python's standard logging hierarchy.
+
+    Examples:
+    - get_logger("pomodoro.core")
+    - get_logger("pomodoro.adapters.gui")
+    - get_logger("pomodoro.infrastructure.db")
+    - get_logger("plugin.timer_hook")
+    """
+    return logging.getLogger(namespace)

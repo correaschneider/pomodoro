@@ -63,7 +63,7 @@
               "1.4"
             ],
             "details": "- Logger namespaces:\n  - pomodoro.core (domain/services)\n  - pomodoro.adapters.gui, .system_tray, .notifications, .cli\n  - pomodoro.infrastructure.db, .i18n, .config, .update\n  - plugin.<plugin_name>\n- Set sensible defaults (INFO) and recommend DEBUG for local dev via environment variable override.\n- Provide helper function or snippet demonstrating acquiring namespaced loggers and emitting messages.\n- Document in docs/observability.md (or README section) how messages route to app.log, events.log, plugin_errors.log, and how propagation may cause parent file capture.\nAcceptance criteria:\n- Minimal script using these logger names writes to expected files after setup_logging().\n- Documentation exists showing examples and mapping from namespaces to log files.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T10:20:03.251Z",
+      "updated": "2025-08-13T10:27:52.048Z",
       "description": "Tasks for master context"
     }
   }
