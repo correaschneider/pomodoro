@@ -552,7 +552,7 @@
           1,
           2
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -571,7 +571,7 @@
               "6.1"
             ],
             "details": "Files: infrastructure/db/schema.py. Implement create_schema(conn) with DDL: CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY, type TEXT NOT NULL, duration_s INTEGER NOT NULL, started_at TEXT NOT NULL, ended_at TEXT, state TEXT NOT NULL); CREATE INDEX IF NOT EXISTS idx_sessions_started_at ON sessions(started_at); CREATE INDEX IF NOT EXISTS idx_sessions_type ON sessions(type). CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL). Optionally create a stats_cache table if needed later. Ensure idempotent calls and run after obtaining a connection. Consider a simple schema_version table for future migrations (insert version 1 if absent).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T13:40:26.920Z",
+      "updated": "2025-08-13T13:46:51.896Z",
       "description": "Tasks for master context"
     }
   }
