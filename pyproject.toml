@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pomodoro-app"
+version = "0.1.0"
+description = "Pomodoro desktop app with PySide6, plugins, and i18n"
+requires-python = ">=3.12"
+authors = [
+  { name = "Pedro H C Schneider" }
+]
+license = { file = "LICENSE" }
+dependencies = [
+  "PySide6",
+  "pluggy",
+  "packaging",
+  "platformdirs",
+]
+
+[project.optional-dependencies]
+notifications = ["notify2; sys_platform == 'linux'"]
+win_toast = ["win10toast; sys_platform == 'win32'"]
+dev = [
+  "pytest",
+  "pytest-qt",
+  "black",
+  "ruff",
+  "pip-audit",
+  "babel",
+]
+
+[project.scripts]
+pomodoro-app = "pomodoro_app.__main__:main"
+
+

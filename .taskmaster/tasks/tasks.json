@@ -17,7 +17,7 @@
             "description": "Create the hexagonal/ports-adapters repository structure with Python packages and placeholders.",
             "dependencies": [],
             "details": "- Create directories:\n  pomodoro_app/{core,adapters/{gui,system_tray,notifications,cli},infrastructure/{db,i18n,config,update},plugin_manager,plugins,tests/{unit,integration},resources/locales,docs/adrs}\n- Add __init__.py files for all Python packages: pomodoro_app, core, adapters and its subpackages, infrastructure and its subpackages, plugin_manager, plugins.\n- Add placeholder README.md files where helpful (e.g., docs/adrs/README.md).\n- Ensure tests directories exist with conftest.py placeholders if needed.\nAcceptance criteria:\n- Import succeeds: python -c \"import pomodoro_app\" returns 0.\n- The directory tree matches the specified layout and all package dirs contain __init__.py.\n- docs/adrs directory present for ADR-008 and ADR-012 references.\n<info added on 2025-08-13T09:57:34.723Z>\n- Implement the ADR-008 repository layout as listed in the request and add empty __init__.py files to all Python package directories (pomodoro_app, core, adapters and all its subpackages, infrastructure and all its subpackages, plugin_manager, plugins).\n- Do not add any tooling/configuration files in this subtask; defer them to subtask 1.2 or later.\n- Additional acceptance criterion: no pyproject.toml, setup.cfg, tox.ini, ruff.toml, .flake8, .editorconfig, mypy.ini, .pre-commit-config.yaml, pytest.ini (or equivalent) are introduced in this subtask.\n</info added on 2025-08-13T09:57:34.723Z>",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -27,8 +27,8 @@
             "dependencies": [
               "1.1"
             ],
-            "details": "- Use PEP 621 in pyproject.toml with name 'pomodoro-app' (distribution) and package 'pomodoro_app'.\n- Requires Python >=3.12.\n- Runtime deps: PySide6, pluggy, packaging, platformdirs, (optionally) tomli-w if needed; i18n tooling (babel) can be dev-only.\n- Optional extras:\n  - notifications: notify2; sys_platform == 'linux'\n  - win_toast: win10toast; sys_platform == 'win32'\n- Dev extras: pytest, pytest-qt, black, ruff, pip-audit, babel (if used).\n- Entry point:\n  [project.scripts]\n  pomodoro-app = \"pomodoro_app.__main__:main\"\n- Choose a build backend (e.g., setuptools) compatible with PEP 621.\nAcceptance criteria:\n- pip install -e .[dev] succeeds on a clean environment.\n- pip install -e .[notifications,win_toast] resolves platform-specific extras without errors.\n- Entry point declared for pomodoro-app (will be exercised in bootstrap subtask).",
-            "status": "pending",
+            "details": "- Use PEP 621 in pyproject.toml with name 'pomodoro-app' (distribution) and package 'pomodoro_app'.\n- Requires Python >=3.12.\n- Runtime deps: PySide6, pluggy, packaging, platformdirs, (optionally) tomli-w if needed; i18n tooling (babel) can be dev-only.\n- Optional extras:\n  - notifications: notify2; sys_platform == 'linux'\n  - win_toast: win10toast; sys_platform == 'win32'\n- Dev extras: pytest, pytest-qt, black, ruff, pip-audit, babel (if used).\n- Entry point:\n  [project.scripts]\n  pomodoro-app = \"pomodoro_app.__main__:main\"\n- Choose a build backend (e.g., setuptools) compatible with PEP 621.\nAcceptance criteria:\n- pip install -e .[dev] succeeds on a clean environment.\n- pip install -e .[notifications,win_toast] resolves platform-specific extras without errors.\n- Entry point declared for pomodoro-app (will be exercised in bootstrap subtask).\n<info added on 2025-08-13T10:08:34.008Z>\n[build-system]\nrequires = [\"setuptools>=64\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"pomodoro-app\"\nversion = \"0.1.0\"\nrequires-python = \">=3.12\"\ndependencies = [\n  \"PySide6\",\n  \"pluggy\",\n  \"packaging\",\n  \"platformdirs\",\n]\n\n[project.optional-dependencies]\nnotifications = [\"notify2; sys_platform == 'linux'\"]\nwin_toast = [\"win10toast; sys_platform == 'win32'\"]\ndev = [\"pytest\", \"pytest-qt\", \"black\", \"ruff\", \"pip-audit\", \"babel\"]\n\n[project.scripts]\npomodoro-app = \"pomodoro_app.__main__:main\"\n</info added on 2025-08-13T10:08:34.008Z>",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T09:56:22.885Z",
+      "updated": "2025-08-13T10:07:04.409Z",
       "description": "Tasks for master context"
     }
   }
