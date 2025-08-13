@@ -560,7 +560,7 @@
             "description": "Implement database path discovery in user data directory, ensure directories exist, and create a configured SQLite connection.",
             "dependencies": [],
             "details": "Files: infrastructure/db/connection.py. Implement get_db_path() to return a platform-specific user data dir path (e.g., using platformdirs) under a pomodoro app folder, and ensure parent directories are created. Implement get_connection(path=None) that resolves the DB path, opens sqlite3.connect(path, check_same_thread=false, isolation_level=None), configures PRAGMA journal_mode=WAL, PRAGMA synchronous=NORMAL, PRAGMA foreign_keys=ON, PRAGMA busy_timeout=5000, and returns the connection. Provide a close_connection() util if a global connection is managed. Expose a small contextmanager for explicit transactions (BEGIN; COMMIT/ROLLBACK) when needed.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T13:38:51.992Z",
+      "updated": "2025-08-13T13:40:26.920Z",
       "description": "Tasks for master context"
     }
   }
