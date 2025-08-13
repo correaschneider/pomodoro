@@ -88,6 +88,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stopButton.clicked.connect(self.stopRequested.emit)
         self.settingsAction.triggered.connect(self.settingsRequested.emit)
 
+        # Default handler to show a simple settings dialog
+        # Controller can override by disconnecting/reconnecting this signal
+        self.settingsRequested.connect(self._show_settings_dialog)
+
     # --- Public update hooks (controller/bridge will call later) -------------
     @QtCore.Slot(int)
     def update_remaining_seconds(self, remaining: int) -> None:
@@ -103,6 +107,17 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_state(self, state: object) -> None:
         # Controller will improve enable/disable logic in subtask 3.4
         self.statusBar().showMessage(_(f"State: {getattr(state, 'name', state)}"))
+
+    # --- Default handlers ----------------------------------------------------
+    @QtCore.Slot()
+    def _show_settings_dialog(self) -> None:
+        try:
+            from .settings_dialog import SettingsDialog
+
+            dlg = SettingsDialog(self)
+            dlg.exec()
+        except Exception:
+            logger.exception("failed to open settings dialog")
 
 
 __all__ = ["MainWindow"]

@@ -296,7 +296,7 @@
               "3.3"
             ],
             "details": "Create adapters/gui/settings_dialog.py: class SettingsDialog(QDialog) with QFormLayout: QSpinBox focus_minutes, short_break_minutes, long_break_minutes (ranges 1–180), QCheckBox enable_overlay, QCheckBox enable_sounds, QComboBox language (codes, placeholders). Include QDialogButtonBox OK/Cancel. Provide methods values() -> dict and set_values(defaults). In MainWindow, connect Settings QAction to show the dialog (modal) and emit a signal with chosen values; no persistence or live language switch yet (handled in Task 7).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T13:30:49.400Z",
+      "updated": "2025-08-13T13:32:07.059Z",
       "description": "Tasks for master context"
     }
   }
