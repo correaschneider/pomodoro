@@ -9,15 +9,15 @@
         "testStrategy": "- Unit: test_logging_setup creates log files, rotates at size threshold (patch maxBytes small), writes to correct namespaces.\n- Lint: run ruff/black in CI locally.\n- Integration smoke: run python -m pomodoro_app to ensure no exceptions and log files are generated.\n- Validate logger names and file separation by emitting test logs from each namespace.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
             "title": "Repository layout per ADR-008",
             "description": "Create the hexagonal/ports-adapters repository structure with Python packages and placeholders.",
             "dependencies": [],
-            "details": "- Create directories:\n  pomodoro_app/{core,adapters/{gui,system_tray,notifications,cli},infrastructure/{db,i18n,config,update},plugin_manager,plugins,tests/{unit,integration},resources/locales,docs/adrs}\n- Add __init__.py files for all Python packages: pomodoro_app, core, adapters and its subpackages, infrastructure and its subpackages, plugin_manager, plugins.\n- Add placeholder README.md files where helpful (e.g., docs/adrs/README.md).\n- Ensure tests directories exist with conftest.py placeholders if needed.\nAcceptance criteria:\n- Import succeeds: python -c \"import pomodoro_app\" returns 0.\n- The directory tree matches the specified layout and all package dirs contain __init__.py.\n- docs/adrs directory present for ADR-008 and ADR-012 references.",
-            "status": "pending",
+            "details": "- Create directories:\n  pomodoro_app/{core,adapters/{gui,system_tray,notifications,cli},infrastructure/{db,i18n,config,update},plugin_manager,plugins,tests/{unit,integration},resources/locales,docs/adrs}\n- Add __init__.py files for all Python packages: pomodoro_app, core, adapters and its subpackages, infrastructure and its subpackages, plugin_manager, plugins.\n- Add placeholder README.md files where helpful (e.g., docs/adrs/README.md).\n- Ensure tests directories exist with conftest.py placeholders if needed.\nAcceptance criteria:\n- Import succeeds: python -c \"import pomodoro_app\" returns 0.\n- The directory tree matches the specified layout and all package dirs contain __init__.py.\n- docs/adrs directory present for ADR-008 and ADR-012 references.\n<info added on 2025-08-13T09:57:34.723Z>\n- Implement the ADR-008 repository layout as listed in the request and add empty __init__.py files to all Python package directories (pomodoro_app, core, adapters and all its subpackages, infrastructure and all its subpackages, plugin_manager, plugins).\n- Do not add any tooling/configuration files in this subtask; defer them to subtask 1.2 or later.\n- Additional acceptance criterion: no pyproject.toml, setup.cfg, tox.ini, ruff.toml, .flake8, .editorconfig, mypy.ini, .pre-commit-config.yaml, pytest.ini (or equivalent) are introduced in this subtask.\n</info added on 2025-08-13T09:57:34.723Z>",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-11T11:02:04.411Z",
+      "updated": "2025-08-13T09:56:22.885Z",
       "description": "Tasks for master context"
     }
   }
