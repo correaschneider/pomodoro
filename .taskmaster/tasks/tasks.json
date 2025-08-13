@@ -252,7 +252,7 @@
               "3.1"
             ],
             "details": "Create adapters/gui/bridge.py: class GuiBridge(QtCore.QObject) with QtCore.Signal definitions: tick = Signal(int, int, object) for (elapsed, remaining, state), state = Signal(object) for state-only updates. Provide attach_service(service) that subscribes to service.on('tick'/'state') and forwards events via QtCore.QMetaObject.invokeMethod(self, lambda: self.tick.emit(...), Qt.QueuedConnection). Add detach_service() for cleanup. Expose a property is_attached and optional error signal for domain exceptions.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T13:20:32.931Z",
+      "updated": "2025-08-13T13:23:45.628Z",
       "description": "Tasks for master context"
     }
   }
