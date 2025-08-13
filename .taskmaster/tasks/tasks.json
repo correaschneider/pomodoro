@@ -276,7 +276,7 @@
               "3.3"
             ],
             "details": "Create adapters/gui/controller.py: class GuiController(service, bridge, window, settings_provider=None). Connect window.startBtn to service.start_focus(duration) where duration comes from settings_provider or a default. Wire pauseBtn/resume semantics: single toggle button—on click, call service.pause() or service.resume() depending on current state; update text between _('Pause') and _('Resume'). Wire stopBtn to service.stop(). Connect bridge.tick/state to window._on_tick/_on_state and update enabled/disabled state of buttons based on domain state (Idle/Running/Paused). Handle errors with logging and optional message in StatusBar. Expose setup() and teardown() methods.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T13:25:44.088Z",
+      "updated": "2025-08-13T13:26:44.501Z",
       "description": "Tasks for master context"
     }
   }
