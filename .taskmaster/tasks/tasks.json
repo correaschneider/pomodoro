@@ -159,7 +159,7 @@
               "2.4"
             ],
             "details": "Implement start_focus(dur_s:int) and start_break(dur_s:int) delegating to _start(type, dur_s). Validate dur_s>0. Only allow start when state==IDLE; otherwise raise AlreadyRunningError. _start: under lock, create Session(id=uuid4(), type, duration_s=dur_s, started_at=now, ended_at=None, state='running'); set state to RUNNING_FOCUS or RUNNING_BREAK; set remaining=dur_s; spawn worker thread if not alive; emit 'state'. pause(): only when RUNNING_*; set state=PAUSED; emit 'state'. resume(): only when PAUSED; restore state to RUNNING_* based on session.type; emit 'state'. stop(): valid when RUNNING_* or PAUSED; call _finish_cycle(cancelled=True). Make these methods idempotent where reasonable (e.g., repeated pause raises AlreadyPausedError or becomes no-op by design decision).",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T12:36:22.401Z",
+      "updated": "2025-08-13T12:37:19.447Z",
       "description": "Tasks for master context"
     }
   }

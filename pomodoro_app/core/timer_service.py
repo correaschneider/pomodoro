@@ -65,21 +65,94 @@ class TimerService:
 
         return _unsubscribe
 
-    # API stubs (to be implemented in subsequent subtasks) ---------------------
+    # API methods with state/reentrancy guards (subtask 2.5) -------------------
     def start_focus(self, dur_s: int | None = None) -> None:
-        raise NotImplementedError
+        self._start(SessionType.FOCUS, dur_s)
 
     def start_break(self, dur_s: int | None = None) -> None:
-        raise NotImplementedError
+        self._start(SessionType.BREAK, dur_s)
 
     def pause(self) -> None:
-        raise NotImplementedError
+        with self._lock:
+            if self.state not in (TimerState.RUNNING_FOCUS, TimerState.RUNNING_BREAK):
+                raise RuntimeError("pause() only valid when timer is running")
+            self.state = TimerState.PAUSED
+            self._logger.info("Timer paused")
 
     def resume(self) -> None:
-        raise NotImplementedError
+        with self._lock:
+            if self.state != TimerState.PAUSED:
+                raise RuntimeError("resume() only valid when timer is paused")
+            if not self._current_session:
+                raise RuntimeError("no session to resume")
+            self.state = (
+                TimerState.RUNNING_FOCUS
+                if self._current_session.type == SessionType.FOCUS
+                else TimerState.RUNNING_BREAK
+            )
+            self._logger.info("Timer resumed")
 
     def stop(self) -> None:
-        raise NotImplementedError
+        from datetime import datetime
+
+        # Signal loop to shutdown promptly
+        self._shutdown_event.set()
+        with self._lock:
+            if self._current_session and self._current_session.ended_at is None:
+                self._current_session.ended_at = datetime.now()
+            self.state = TimerState.IDLE
+            self._remaining = 0.0
+            self._logger.info("Timer stopped")
+        # Join thread outside of lock to avoid deadlocks
+        self._join_thread_if_running(timeout=2.0)
+
+    # Internal helpers ---------------------------------------------------------
+    def _start(self, session_type: SessionType, dur_s: int | None) -> None:
+        from datetime import datetime
+        from uuid import uuid4
+
+        DEFAULT_FOCUS_SECONDS = 25 * 60
+        DEFAULT_BREAK_SECONDS = 5 * 60
+
+        with self._lock:
+            if self.state in (
+                TimerState.RUNNING_FOCUS,
+                TimerState.RUNNING_BREAK,
+                TimerState.PAUSED,
+            ):
+                raise RuntimeError("timer already running or paused")
+
+            duration = (
+                (dur_s if dur_s is not None else DEFAULT_FOCUS_SECONDS)
+                if session_type == SessionType.FOCUS
+                else (dur_s if dur_s is not None else DEFAULT_BREAK_SECONDS)
+            )
+            if duration <= 0:
+                raise ValueError("duration must be positive")
+
+            self._current_session = Session(
+                id=uuid4(),
+                type=session_type,
+                duration_s=int(duration),
+                started_at=datetime.now(),
+                ended_at=None,
+                state=TimerState.IDLE,  # will be updated below
+            )
+
+            self._remaining = float(duration)
+            self.state = (
+                TimerState.RUNNING_FOCUS
+                if session_type == SessionType.FOCUS
+                else TimerState.RUNNING_BREAK
+            )
+            self._current_session.state = self.state
+            self._logger.info(
+                "Timer started: %s for %ss", session_type.name.lower(), int(duration)
+            )
+
+            # prepare and start loop
+            self._shutdown_event.clear()
+            self._spawn_thread()
 
     # Internal ticking loop (implemented for subtask 2.4) ---------------------
     def _spawn_thread(self) -> None:
