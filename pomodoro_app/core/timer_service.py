@@ -5,6 +5,7 @@ import threading
 from typing import Callable, Literal
 
 from .models import Session, SessionType, TimerState
+from .errors import InvalidDurationError, InvalidStateError
 from .ports import (
     CYCLE_END_CALLBACKS,
     STATE_CALLBACKS,
@@ -75,7 +76,7 @@ class TimerService:
     def pause(self) -> None:
         with self._lock:
             if self.state not in (TimerState.RUNNING_FOCUS, TimerState.RUNNING_BREAK):
-                raise RuntimeError("pause() only valid when timer is running")
+                raise InvalidStateError("pause() only valid when timer is running")
             self.state = TimerState.PAUSED
             self._logger.info("Timer paused")
         self._emit("state", self.state)
@@ -83,9 +84,9 @@ class TimerService:
     def resume(self) -> None:
         with self._lock:
             if self.state != TimerState.PAUSED:
-                raise RuntimeError("resume() only valid when timer is paused")
+                raise InvalidStateError("resume() only valid when timer is paused")
             if not self._current_session:
-                raise RuntimeError("no session to resume")
+                raise InvalidStateError("no session to resume")
             self.state = (
                 TimerState.RUNNING_FOCUS
                 if self._current_session.type == SessionType.FOCUS
@@ -127,7 +128,7 @@ class TimerService:
                 TimerState.RUNNING_BREAK,
                 TimerState.PAUSED,
             ):
-                raise RuntimeError("timer already running or paused")
+                raise InvalidStateError("timer already running or paused")
 
             duration = (
                 (dur_s if dur_s is not None else DEFAULT_FOCUS_SECONDS)
@@ -135,7 +136,7 @@ class TimerService:
                 else (dur_s if dur_s is not None else DEFAULT_BREAK_SECONDS)
             )
             if duration <= 0:
-                raise ValueError("duration must be positive")
+                raise InvalidDurationError("duration must be positive")
 
             self._current_session = Session(
                 id=uuid4(),
