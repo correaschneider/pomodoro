@@ -8,6 +8,7 @@ from uuid import UUID
 
 from pomodoro_app.core.models import Session, SessionType, TimerState
 from pomodoro_app.infrastructure.logging import get_logger
+from .utils import safe_execute, transaction
 
 
 logger = get_logger("pomodoro.infrastructure.db")
@@ -35,7 +36,7 @@ class SessionRepository:
         """
 
         logger.info("Inserting session %s (%s)", session.id, session.type.name)
-        self._conn.execute(
+        safe_execute(
             """
             INSERT INTO sessions(id, type, duration_s, started_at, ended_at, state)
             VALUES(?, ?, ?, ?, ?, ?)
@@ -76,13 +77,14 @@ class SessionRepository:
         where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
         sql = f"SELECT id, type, duration_s, started_at, ended_at, state FROM sessions{where} ORDER BY started_at ASC"
 
-        rows = self._conn.execute(sql, params).fetchall()
+        rows = safe_execute(self._conn, sql, params).fetchall()
         return [self._row_to_session(row) for row in rows]
 
     def last_n(self, n: int) -> list[Session]:
         """Return the last `n` sessions ordered by `started_at` descending."""
 
-        rows = self._conn.execute(
+        rows = safe_execute(
+            self._conn,
             """
             SELECT id, type, duration_s, started_at, ended_at, state
             FROM sessions
@@ -116,7 +118,7 @@ class SettingsRepository:
         self._conn = conn
 
     def get(self, key: str, default: Any | None = None) -> Any | None:
-        row = self._conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+        row = safe_execute(self._conn, "SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
         if not row:
             return default
         try:
@@ -131,7 +133,7 @@ class SettingsRepository:
         except Exception:
             logger.exception("Failed to encode JSON for settings key '%s'", key)
             raise
-        self._conn.execute(
+        safe_execute(
             """
             INSERT INTO settings(key, value) VALUES(?, ?)
             ON CONFLICT(key) DO UPDATE SET value = excluded.value

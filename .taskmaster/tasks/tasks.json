@@ -632,7 +632,7 @@
               "6.4"
             ],
             "details": "Namespace: pomodoro.infrastructure.db. Configure logger and add debug logs for connection open/close, schema creation, SQL operations timing (optional). Wrap DB operations with try/except to log exceptions (include SQL and params when safe) and rethrow as domain-specific exceptions where appropriate. Ensure busy_timeout and WAL reduce 'database is locked' errors; on OperationalError, include guidance in logs. Add safe guards to never log sensitive values stored in settings.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T14:36:38.971Z",
+      "updated": "2025-08-13T14:38:08.784Z",
       "description": "Tasks for master context"
     }
   }
