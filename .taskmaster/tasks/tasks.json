@@ -285,7 +285,7 @@
             "description": "Provide a reusable mm:ss formatter for remaining time and add unit tests for edge cases.",
             "dependencies": [],
             "details": "Add adapters/gui/utils.py with function format_mmss(total_seconds: int) -> str that clamps negatives to 0, rounds toward zero, and formats minutes and seconds as mm:ss (e.g., 0->'00:00', 5->'00:05', 65->'01:05', 3600->'60:00'). Include tests in tests/unit/test_format_mmss.py covering negatives, small numbers, minute boundaries, and large values. MainWindow will use this in _on_tick once available.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T13:26:44.501Z",
+      "updated": "2025-08-13T13:30:49.400Z",
       "description": "Tasks for master context"
     }
   }
