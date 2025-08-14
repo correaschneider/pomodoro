@@ -396,7 +396,7 @@
               "4.1"
             ],
             "details": "Verify QSystemTrayIcon.isSystemTrayAvailable and log/handle absence gracefully. Load icons from Qt resources for all DPI scales; set application/window icon so the tray icon is visible. On macOS: ensure setWindowIcon is called on main window, consider NSApp activation hints if the tray menu should appear when no windows are open, verify the menu is reachable when all windows hidden, and respect app.setQuitOnLastWindowClosed(False) (set in GUI bootstrap). Add logger under pomodoro.adapters.gui or pomodoro.adapters.system_tray; log action triggers and state transitions for diagnostics.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T13:42:27.599Z",
+      "updated": "2025-08-14T13:42:59.541Z",
       "description": "Tasks for master context"
     }
   }

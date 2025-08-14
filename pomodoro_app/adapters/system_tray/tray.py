@@ -44,6 +44,14 @@ class TrayController(QtWidgets.QSystemTrayIcon):
 
         if icon is not None:
             self.setIcon(icon)
+        else:
+            try:
+                # Fallback: use the application window icon if available
+                app = QtWidgets.QApplication.instance()
+                if app is not None and app.windowIcon() and not app.windowIcon().isNull():
+                    self.setIcon(app.windowIcon())
+            except Exception:
+                logger.debug("no default icon available for tray")
 
         self._menu = QtWidgets.QMenu(parent)
 
@@ -93,6 +101,12 @@ class TrayController(QtWidgets.QSystemTrayIcon):
 
         self.setContextMenu(self._menu)
         self.setToolTip("Pomodoro")
+
+        # Some platforms require the tray to be explicitly shown
+        try:
+            self.show()
+        except Exception:
+            logger.debug("tray show() not supported in this environment")
 
         logger.info("System tray initialized with menu and wiring")
 
