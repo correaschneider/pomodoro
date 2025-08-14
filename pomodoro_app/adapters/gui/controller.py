@@ -69,6 +69,12 @@ class GuiController(QtCore.QObject):
         # Update status bar and buttons
         self._window.update_state(state)
         self._apply_button_states(state)
+        # If transitioned to IDLE (e.g., Stop clicked), reset timer label to 00:00
+        try:
+            if state == TimerState.IDLE:
+                self._window.update_remaining_seconds(0)
+        except Exception:
+            logger.exception("failed to reset timer label on IDLE state")
 
     @QtCore.Slot(object)
     def _on_cycle_end(self, session: object) -> None:  # noqa: ARG002

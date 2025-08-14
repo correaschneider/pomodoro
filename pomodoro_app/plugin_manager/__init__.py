@@ -3,7 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict
 
-from pomodoro_app.infrastructure.i18n import DOMAIN as CORE_DOMAIN
+# Avoid importing i18n at module import time to prevent circular imports.
+# Core gettext domain constant is defined here to decouple from i18n module.
+CORE_DOMAIN: str = "pomodoro_app"
 
 
 _plugin_domains: Dict[str, Path] = {}
@@ -23,5 +25,3 @@ def get_plugin_domains() -> Dict[str, Path]:
 
 
 __all__ = ["register_plugin_domain", "get_plugin_domains", "CORE_DOMAIN"]
-
-

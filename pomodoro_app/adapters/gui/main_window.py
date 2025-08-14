@@ -117,6 +117,25 @@ class MainWindow(QtWidgets.QMainWindow):
         # Controller will improve enable/disable logic in subtask 3.4
         self.statusBar().showMessage(tr(f"State: {getattr(state, 'name', state)}"))
 
+    # --- i18n: retranslate UI -------------------------------------------------
+    def retranslateUi(self) -> None:
+        try:
+            self.setWindowTitle(tr("Pomodoro"))
+            # Menu bar
+            self.menuBar().clear()
+            app_menu = self.menuBar().addMenu(tr("App"))
+            self.settingsAction.setText(tr("Settings"))
+            app_menu.addAction(self.settingsAction)
+            # Buttons
+            self.startButton.setText(tr("Start"))
+            self.pauseButton.setText(tr("Pause"))
+            self.resumeButton.setText(tr("Resume"))
+            self.stopButton.setText(tr("Stop"))
+            # Status bar default
+            self.statusBar().showMessage(tr("Ready"))
+        except Exception:
+            logger.exception("failed to retranslate UI")
+
     # --- Default handlers ----------------------------------------------------
     @QtCore.Slot()
     def _show_settings_dialog(self) -> None:
@@ -149,25 +168,3 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 __all__ = ["MainWindow"]
-
-
-    # --- i18n: retranslate UI -------------------------------------------------
-    def retranslateUi(self) -> None:
-        try:
-            self.setWindowTitle(tr("Pomodoro"))
-            # Menu bar
-            self.menuBar().clear()
-            app_menu = self.menuBar().addMenu(tr("App"))
-            self.settingsAction.setText(tr("Settings"))
-            app_menu.addAction(self.settingsAction)
-            # Buttons
-            self.startButton.setText(tr("Start"))
-            self.pauseButton.setText(tr("Pause"))
-            self.resumeButton.setText(tr("Resume"))
-            self.stopButton.setText(tr("Stop"))
-            # Status bar default
-            self.statusBar().showMessage(tr("Ready"))
-        except Exception:
-            logger.exception("failed to retranslate UI")
-
-
