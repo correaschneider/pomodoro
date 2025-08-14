@@ -385,7 +385,7 @@
               "4.3"
             ],
             "details": "Subscribe to the same bridge state changes and update actions: disable Start actions when running/paused; enable Start actions when idle; Stop enabled when running/paused; implement a single Pause/Resume toggle action that switches text/icon and connected slot between service.pause and service.resume depending on state; Show/Hide Window action label updates based on main_window.isVisible(). Keep icons and tooltips synchronized with current state.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T13:41:42.475Z",
+      "updated": "2025-08-14T13:42:27.599Z",
       "description": "Tasks for master context"
     }
   }

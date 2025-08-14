@@ -19,9 +19,10 @@ logger = get_logger("pomodoro.adapters.system_tray")
 class TrayController(QtWidgets.QSystemTrayIcon):
     """Base system tray controller with menu scaffold.
 
-    This class provides a minimal QSystemTrayIcon with a context menu scaffold.
-    Actions are created but not wired to domain services here; wiring is part of
-    later subtasks.
+    This class provides a QSystemTrayIcon with a context menu and, when a
+    `TimerService` and `MainWindow` are provided, wires actions to control
+    the timer and main window. Tooltip and action states are updated from
+    GuiBridge signals.
     """
 
     def __init__(
@@ -122,6 +123,7 @@ class TrayController(QtWidgets.QSystemTrayIcon):
     def _on_state(self, state: object) -> None:
         # Update tooltip using last known remaining seconds
         self._update_tooltip(state, self._last_remaining)
+        self._apply_action_states(state)
 
     def _update_tooltip(self, state: object, remaining: int) -> None:
         try:
@@ -129,6 +131,37 @@ class TrayController(QtWidgets.QSystemTrayIcon):
             self.setToolTip(f"{state_name} – {format_mm_ss(remaining)}")
         except Exception:
             logger.exception("failed to update tooltip")
+
+    def _apply_action_states(self, state: object) -> None:
+        # Default conservative state
+        start_enabled = True
+        pause_enabled = False
+        resume_enabled = False
+        stop_enabled = False
+
+        if isinstance(state, TimerState):
+            if state in (TimerState.RUNNING_FOCUS, TimerState.RUNNING_BREAK):
+                start_enabled = False
+                pause_enabled = True
+                resume_enabled = False
+                stop_enabled = True
+            elif state == TimerState.PAUSED:
+                start_enabled = False
+                pause_enabled = False
+                resume_enabled = True
+                stop_enabled = True
+            elif state == TimerState.IDLE:
+                start_enabled = True
+                pause_enabled = False
+                resume_enabled = False
+                stop_enabled = False
+
+        # Apply
+        self._act_start_focus.setEnabled(start_enabled and (self._service is not None))
+        self._act_start_break.setEnabled(start_enabled and (self._service is not None))
+        self._act_pause.setEnabled(pause_enabled and (self._service is not None))
+        self._act_resume.setEnabled(resume_enabled and (self._service is not None))
+        self._act_stop.setEnabled(stop_enabled and (self._service is not None))
 
     # Expose actions for later wiring/toggling in subsequent subtasks
     @property
