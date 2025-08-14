@@ -765,7 +765,7 @@
           3,
           7
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -773,7 +773,7 @@
             "description": "Create hookspecs for plugin lifecycle and UI contribution.",
             "dependencies": [],
             "details": "- File: plugin_manager/spec.py\n- Define HookSpecMarker(\"pomodoro_app\") and hooks:\n  - on_app_start(app_ctx)\n  - on_timer_tick(elapsed, remaining, state)\n  - on_cycle_end(session)\n  - provide_settings_ui(parent) -> QWidget or None\n- Type hints and docstrings for each hook\n- Export a function add_hookspecs(pm: pluggy.PluginManager) to register specs\n- Acceptance: Pluggy can import spec module and pm.add_hookspecs works",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T14:23:47.685Z",
+      "updated": "2025-08-14T14:36:07.169Z",
       "description": "Tasks for master context"
     }
   }
