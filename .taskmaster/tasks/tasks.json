@@ -666,7 +666,7 @@
           3,
           6
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -674,7 +674,7 @@
             "description": "Implement the core gettext-based internationalization module with domain/locale configuration, locale loading, installation, and gettext helper functions.",
             "dependencies": [],
             "details": "- File: infrastructure/i18n/i18n.py\n- Constants: DOMAIN = \"pomodoro_app\"; LOCALES_DIR = \"resources/locales\"\n- Function load_locale(lang_code): return gettext.translation(DOMAIN, localedir=LOCALES_DIR, languages=[lang_code], fallback=True)\n- Function install(lang_code):\n  - t = load_locale(lang_code)\n  - Set module-level translation reference and install gettext with t.gettext as _\n  - Expose ngettext = t.ngettext; implement pgettext via t.pgettext if available, else fallback to combining context/message or returning message\n  - Provide normalize_language(lang_code) to map app settings (e.g., en-US -> en_US)\n- Expose API: load_locale, install, ngettext, pgettext, normalize_language\n- Add typing hints and docstrings; ensure idempotent install",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T13:43:44.818Z",
+      "updated": "2025-08-14T13:54:55.661Z",
       "description": "Tasks for master context"
     }
   }
