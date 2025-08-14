@@ -854,7 +854,7 @@
               "8.5"
             ],
             "details": "- On application start, construct SafeAppContext and call pm.hook.on_app_start(app_ctx=...)\n- Subscribe TimerService events:\n  - on_tick -> pm.hook.on_timer_tick(elapsed=..., remaining=..., state=...)\n  - on_cycle_end -> pm.hook.on_cycle_end(session=...)\n- Wrap hook invocations to isolate exceptions per plugin; continue others\n- For GUI, expose a bridge to call provide_settings_ui when assembling settings dialog; skip in headless\n- Acceptance: Integration test verifies hooks receive events and exceptions do not propagate",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T15:05:21.800Z",
+      "updated": "2025-08-14T15:20:15.206Z",
       "description": "Tasks for master context"
     }
   }

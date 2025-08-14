@@ -163,3 +163,35 @@ __all__ = [
 ]
 
 
+def wire_timer_service(pm: pluggy.PluginManager, service: "object") -> "callable[[], None]":
+    """Wire TimerService events to plugin hooks.
+
+    Expects an object compatible with TimerService's observer API: on_tick, on_cycle_end.
+    Returns an unsubscribe callable.
+    """
+
+    def _on_tick(elapsed: int, remaining: int, state: object) -> None:
+        try:
+            pm.hook.on_timer_tick(elapsed=elapsed, remaining=remaining, state=state)
+        except Exception:
+            plugin_err_logger.error("plugin on_timer_tick failed")
+
+    def _on_cycle_end(session: object) -> None:
+        try:
+            pm.hook.on_cycle_end(session=session)
+        except Exception:
+            plugin_err_logger.error("plugin on_cycle_end failed")
+
+    unsub_tick = service.on_tick(_on_tick)
+    unsub_end = service.on_cycle_end(_on_cycle_end)
+
+    def _unsubscribe() -> None:
+        try:
+            unsub_tick()
+        finally:
+            unsub_end()
+
+    return _unsubscribe
+
+
+
