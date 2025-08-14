@@ -362,7 +362,7 @@
               "4.1"
             ],
             "details": "Create QActions with icons and accelerators (e.g., Start Focus: Ctrl+Alt+F, Start Break: Ctrl+Alt+B, Pause/Resume: Ctrl+Alt+P, Stop: Ctrl+Alt+S, Settings: Ctrl+,). Wire triggers: service.start_focus(), service.start_break(), service.pause()/service.resume(), service.stop(), main_window.open_settings(), toggle main_window show/hide, and app.quit(). Add separators to group actions logically. Store all actions on self for later enable/disable and label/icon updates. Ensure Quit action always available.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T13:31:11.446Z",
+      "updated": "2025-08-14T13:35:22.301Z",
       "description": "Tasks for master context"
     }
   }

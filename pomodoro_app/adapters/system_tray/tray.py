@@ -4,6 +4,8 @@ from typing import Optional, Callable
 
 from PySide6 import QtGui, QtWidgets
 
+from pomodoro_app.core.timer_service import TimerService
+
 from pomodoro_app.infrastructure.logging import get_logger
 
 
@@ -24,8 +26,13 @@ class TrayController(QtWidgets.QSystemTrayIcon):
         icon: Optional[QtGui.QIcon] = None,
         on_open_settings: Optional[Callable[[], None]] = None,
         on_quit: Optional[Callable[[], None]] = None,
+        service: Optional[TimerService] = None,
+        main_window: Optional[QtWidgets.QMainWindow] = None,
     ) -> None:
         super().__init__(parent)
+
+        self._service = service
+        self._main_window = main_window
 
         if icon is not None:
             self.setIcon(icon)
@@ -50,10 +57,50 @@ class TrayController(QtWidgets.QSystemTrayIcon):
         if on_quit is not None:
             self._act_quit.triggered.connect(on_quit)  # type: ignore[arg-type]
 
+        # Wiring to TimerService if provided
+        if self._service is not None:
+            self._act_start_focus.triggered.connect(lambda: self._safe_call(self._service.start_focus))  # type: ignore[arg-type]
+            self._act_start_break.triggered.connect(lambda: self._safe_call(self._service.start_break))  # type: ignore[arg-type]
+            self._act_pause.triggered.connect(lambda: self._safe_call(self._service.pause))  # type: ignore[arg-type]
+            self._act_resume.triggered.connect(lambda: self._safe_call(self._service.resume))  # type: ignore[arg-type]
+            self._act_stop.triggered.connect(lambda: self._safe_call(self._service.stop))  # type: ignore[arg-type]
+        else:
+            # Disable actions that require wiring when service is absent
+            self._act_start_focus.setEnabled(False)
+            self._act_start_break.setEnabled(False)
+            self._act_pause.setEnabled(False)
+            self._act_resume.setEnabled(False)
+            self._act_stop.setEnabled(False)
+
+        # Toggle main window visibility if provided
+        if self._main_window is not None:
+            self._act_toggle_window.triggered.connect(self._toggle_main_window)  # type: ignore[arg-type]
+        else:
+            self._act_toggle_window.setEnabled(False)
+
         self.setContextMenu(self._menu)
         self.setToolTip("Pomodoro")
 
-        logger.info("System tray initialized with base menu")
+        logger.info("System tray initialized with menu and wiring")
+
+    # Helpers
+    def _safe_call(self, fn: Callable[[], None]) -> None:
+        try:
+            fn()
+        except Exception:
+            logger.exception("action failed")
+
+    def _toggle_main_window(self) -> None:
+        try:
+            assert self._main_window is not None
+            if self._main_window.isVisible():
+                self._main_window.hide()
+            else:
+                self._main_window.show()
+                self._main_window.raise_()
+                self._main_window.activateWindow()
+        except Exception:
+            logger.exception("toggle window failed")
 
     # Expose actions for later wiring/toggling in subsequent subtasks
     @property
