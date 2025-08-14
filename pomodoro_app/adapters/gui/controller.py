@@ -23,12 +23,20 @@ class GuiController(QtCore.QObject):
     - Manages button enabled states based on TimerState
     """
 
-    def __init__(self, window: MainWindow, service: TimerService, bridge: GuiBridge) -> None:
+    def __init__(
+        self,
+        window: MainWindow,
+        service: TimerService,
+        bridge: GuiBridge,
+        default_focus_seconds: int = 25 * 60,
+    ) -> None:
         super().__init__(window)
         self._window = window
         self._service = service
         self._bridge = bridge
+        self._default_focus_seconds = int(default_focus_seconds)
         self._unsubscribe: Optional[Callable[[], None]] = None
+        self._stopped: bool = False
 
         self._wire_ui_to_service()
         self._wire_bridge_to_ui()
@@ -39,7 +47,7 @@ class GuiController(QtCore.QObject):
         self._window.startRequested.connect(self._on_start_requested)  # type: ignore[arg-type]
         self._window.pauseRequested.connect(self._service.pause)
         self._window.resumeRequested.connect(self._service.resume)
-        self._window.stopRequested.connect(self._service.stop)
+        self._window.stopRequested.connect(self._on_stop_requested)
 
     def _wire_bridge_to_ui(self) -> None:
         if self._unsubscribe:
@@ -69,12 +77,21 @@ class GuiController(QtCore.QObject):
         # Update status bar and buttons
         self._window.update_state(state)
         self._apply_button_states(state)
-        # If transitioned to IDLE (e.g., Stop clicked), reset timer label to 00:00
+        # If transitioned to IDLE due to Stop, reset label to configured focus duration
         try:
-            if state == TimerState.IDLE:
-                self._window.update_remaining_seconds(0)
+            if state == TimerState.IDLE and self._stopped:
+                self._window.update_remaining_seconds(self._default_focus_seconds)
+                self._stopped = False
         except Exception:
-            logger.exception("failed to reset timer label on IDLE state")
+            logger.exception("failed to reset timer label on Stop->IDLE state")
+
+    @QtCore.Slot()
+    def _on_stop_requested(self) -> None:
+        self._stopped = True
+        try:
+            self._service.stop()
+        except Exception:
+            logger.exception("stop failed")
 
     @QtCore.Slot(object)
     def _on_cycle_end(self, session: object) -> None:  # noqa: ARG002

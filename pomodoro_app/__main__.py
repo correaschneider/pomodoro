@@ -66,13 +66,19 @@ def main(argv: list[str] | None = None) -> int:
         from pomodoro_app.adapters.gui.controller import GuiController  # type: ignore
         from pomodoro_app.core.timer_service import TimerService  # type: ignore
 
+        # Carregar configurações para obter duração padrão de focus
+        conn = connect()
+        ensure_schema(conn)
+        settings = load_settings(conn)
+        default_focus = int(settings.get("durations", {}).get("focus", 25 * 60))
+
         service = TimerService()
         bridge = GuiBridge()
 
         def _factory(_app: object) -> object:
             win = MainWindow()
             # Wire controller so that Play/Pause/Resume/Stop control the service
-            GuiController(win, service, bridge)
+            GuiController(win, service, bridge, default_focus_seconds=default_focus)
             return win
 
         return int(run_app(_factory))
