@@ -649,7 +649,7 @@
               "6.7"
             ],
             "details": "Unit: create temp DB, run create_schema, assert tables and indices exist. Test SessionRepository.add/list_by_period/last_n with sample data and ISO timestamps. Test SettingsRepository.get/set round-tripping various JSON types. Test StatsService totals and interruptions over controlled datasets. Integration: wire a minimal TimerService stub to emit cycle_end and verify a Session row is persisted; load settings on startup and confirm TimerService reads them. Concurrency: simulate parallel inserts/reads using threads to validate WAL+busy_timeout behavior and absence of deadlocks. Include teardown to close connections and remove temp files.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-13T14:38:08.784Z",
+      "updated": "2025-08-14T13:24:07.611Z",
       "description": "Tasks for master context"
     }
   }

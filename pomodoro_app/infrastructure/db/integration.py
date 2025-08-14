@@ -61,5 +61,3 @@ def load_settings(conn: sqlite3.Connection) -> Dict[str, Any]:
 
 
 __all__ = ["wire_persistence", "load_settings"]
-
-

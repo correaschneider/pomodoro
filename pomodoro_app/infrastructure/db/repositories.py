@@ -37,6 +37,7 @@ class SessionRepository:
 
         logger.info("Inserting session %s (%s)", session.id, session.type.name)
         safe_execute(
+            self._conn,
             """
             INSERT INTO sessions(id, type, duration_s, started_at, ended_at, state)
             VALUES(?, ?, ?, ?, ?, ?)
@@ -134,6 +135,7 @@ class SettingsRepository:
             logger.exception("Failed to encode JSON for settings key '%s'", key)
             raise
         safe_execute(
+            self._conn,
             """
             INSERT INTO settings(key, value) VALUES(?, ?)
             ON CONFLICT(key) DO UPDATE SET value = excluded.value

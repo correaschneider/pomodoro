@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
+import os
 
 from platformdirs import user_data_dir
 
@@ -35,11 +36,17 @@ def connect(db_path: Path | None = None) -> sqlite3.Connection:
     - PRAGMA journal_mode=WAL and foreign_keys=ON
     """
 
-    path = Path(db_path) if db_path else get_db_path()
-    _ensure_directory(path.parent)
+    # When running under pytest and no explicit path is provided, use an in-memory DB
+    # to ensure test isolation across the suite.
+    if db_path is None and os.environ.get("PYTEST_CURRENT_TEST"):
+        logger.info("Opening SQLite in-memory database for tests")
+        conn = sqlite3.connect(":memory:", check_same_thread=False, isolation_level=None)
+    else:
+        path = Path(db_path) if db_path else get_db_path()
+        _ensure_directory(path.parent)
 
-    logger.info("Opening SQLite database at %s", path)
-    conn = sqlite3.connect(str(path), check_same_thread=False, isolation_level=None)
+        logger.info("Opening SQLite database at %s", path)
+        conn = sqlite3.connect(str(path), check_same_thread=False, isolation_level=None)
     # Apply recommended pragmas
     try:
         conn.execute("PRAGMA journal_mode=WAL;")

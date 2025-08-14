@@ -47,5 +47,3 @@ def transaction(conn: sqlite3.Connection) -> Iterator[None]:
 
 
 __all__ = ["safe_execute", "safe_executemany", "transaction"]
-
-
