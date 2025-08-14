@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional, Callable
 
 from pomodoro_app.infrastructure.logging import get_logger
+from pomodoro_app.plugin_manager import get_plugin_domains
 
 
 logger = get_logger("pomodoro.infrastructure.i18n")
@@ -30,6 +31,14 @@ def load_locale(lang_code: Optional[str]) -> gettext.NullTranslations:
         return gettext.NullTranslations()
     try:
         translation = gettext.translation(DOMAIN, localedir=str(LOCALES_DIR), languages=[lang_code], fallback=True)
+        # Merge plugin domains (if any) as nested translations under core
+        for _name, locales_path in get_plugin_domains().items():
+            try:
+                plug_tr = gettext.translation(_name, localedir=str(locales_path), languages=[lang_code], fallback=True)
+                translation.add_fallback(plug_tr)
+            except Exception:
+                # Ignore plugin errors but continue
+                logger.debug("failed loading plugin domain: %s", _name)
         return translation
     except Exception:  # Defensive: never break startup due to i18n
         logger.exception("Failed to load translation for %s", lang_code)

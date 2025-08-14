@@ -5,6 +5,7 @@ import gettext
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pomodoro_app.infrastructure.logging import get_logger
+from pomodoro_app.infrastructure.i18n import gettext_ as tr, on_locale_change
 
 
 logger = get_logger("pomodoro.adapters.gui.main_window")
@@ -31,6 +32,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self._tray_enabled = False
         self._build_ui()
         self._connect_ui_signals()
+        # Apply initial translations and subscribe to locale changes
+        self.retranslateUi()
+        try:
+            self._i18n_unsub = on_locale_change(lambda _lang: self.retranslateUi())
+        except Exception:
+            self._i18n_unsub = None
 
     # --- UI construction -----------------------------------------------------
     def _build_ui(self) -> None:
@@ -52,10 +59,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Controls
         controls = QtWidgets.QHBoxLayout()
-        self.startButton = QtWidgets.QPushButton(_("Start"), self)
-        self.pauseButton = QtWidgets.QPushButton(_("Pause"), self)
-        self.resumeButton = QtWidgets.QPushButton(_("Resume"), self)
-        self.stopButton = QtWidgets.QPushButton(_("Stop"), self)
+        self.startButton = QtWidgets.QPushButton(self)
+        self.pauseButton = QtWidgets.QPushButton(self)
+        self.resumeButton = QtWidgets.QPushButton(self)
+        self.stopButton = QtWidgets.QPushButton(self)
 
         controls.addWidget(self.startButton)
         controls.addWidget(self.pauseButton)
@@ -71,16 +78,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stopButton.setEnabled(True)
 
     def _create_actions(self) -> None:
-        self.settingsAction = QtGui.QAction(_("Settings"), self)
+        self.settingsAction = QtGui.QAction(self)
         self.settingsAction.setShortcut(QtGui.QKeySequence("Ctrl+,"))
 
     def _create_menubar(self) -> None:
         menubar = self.menuBar()
-        app_menu = menubar.addMenu(_("App"))
+        app_menu = menubar.addMenu("")
         app_menu.addAction(self.settingsAction)
 
     def _create_statusbar(self) -> None:
-        self.statusBar().showMessage(_("Ready"))
+        self.statusBar().showMessage("")
 
     # --- UI signal wiring ----------------------------------------------------
     def _connect_ui_signals(self) -> None:
@@ -108,7 +115,7 @@ class MainWindow(QtWidgets.QMainWindow):
     @QtCore.Slot(object)
     def update_state(self, state: object) -> None:
         # Controller will improve enable/disable logic in subtask 3.4
-        self.statusBar().showMessage(_(f"State: {getattr(state, 'name', state)}"))
+        self.statusBar().showMessage(tr(f"State: {getattr(state, 'name', state)}"))
 
     # --- Default handlers ----------------------------------------------------
     @QtCore.Slot()
@@ -130,7 +137,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self._tray_enabled:
             event.ignore()
             self.hide()
-            self.statusBar().showMessage(_("Hidden to tray"))
+            self.statusBar().showMessage(tr("Hidden to tray"))
             return
 
         # Otherwise, request graceful stop so controller can shutdown services
@@ -142,5 +149,25 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 __all__ = ["MainWindow"]
+
+
+    # --- i18n: retranslate UI -------------------------------------------------
+    def retranslateUi(self) -> None:
+        try:
+            self.setWindowTitle(tr("Pomodoro"))
+            # Menu bar
+            self.menuBar().clear()
+            app_menu = self.menuBar().addMenu(tr("App"))
+            self.settingsAction.setText(tr("Settings"))
+            app_menu.addAction(self.settingsAction)
+            # Buttons
+            self.startButton.setText(tr("Start"))
+            self.pauseButton.setText(tr("Pause"))
+            self.resumeButton.setText(tr("Resume"))
+            self.stopButton.setText(tr("Stop"))
+            # Status bar default
+            self.statusBar().showMessage(tr("Ready"))
+        except Exception:
+            logger.exception("failed to retranslate UI")
 
 

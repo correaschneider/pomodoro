@@ -720,7 +720,7 @@
               "7.2"
             ],
             "details": "- adapters/gui/app.py: call i18n.install(settings[\"language\"]) before creating windows; subscribe to i18n.language_changed\n- settings change handler: when language setting changes, call i18n.switch_language(new_lang)\n- adapters/gui/main_window.py and tray:\n  - Wrap all user-visible strings with _()\n  - Implement retranslateUi()/update_texts() that resets labels, actions, menus\n  - Connect to i18n signal to call update_texts on language change\n- Verify Menu/Tray actions and status bar texts update correctly\n- Document pattern for new widgets: define update_texts and connect at construction",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -731,7 +731,7 @@
               "7.1"
             ],
             "details": "- In i18n module:\n  - register_plugin_domain(name: str, locales_path: str|Path) -> gettext.NullTranslations|GNUTranslations\n  - get_plugin_gettext(name: str) -> Callable[[str], str] returning domain-specific _\n  - Maintain registry {name: (locales_path, translation)}; reload on language change\n- On i18n.switch_language, reload all registered plugin translations for the new language\n- Plugin usage doc: _p = i18n.get_plugin_gettext(\"my_plugin\"); _p(\"Hello\")\n- Validate locales_path existence; fallback to NullTranslations if missing; log warnings\n- Optional: expose plugin ngettext/pgettext if needed",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -747,7 +747,7 @@
               "7.6"
             ],
             "details": "- Unit tests:\n  - load_locale with unknown lang returns a translation that yields original strings\n  - install sets global _; pgettext and ngettext proxies work\n  - normalize_language handles en-US/pt-BR mappings\n- Integration (pytest-qt):\n  - Launch MainWindow with en-US, then switch to pt-BR; assert button/menu texts change\n  - Verify i18n.language_changed emitted once per switch\n- Plugin tests:\n  - Temp plugin domain with test locales; assert _p uses correct translation and updates after switch_language\n- Build/packaging:\n  - Run compile script and assert .mo files exist\n  - If using PyInstaller in CI, assert .mo files included in dist; otherwise validate inclusion config\n- Include negative case: missing pt-BR .mo fallback without crash",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T14:19:54.594Z",
+      "updated": "2025-08-14T14:23:36.660Z",
       "description": "Tasks for master context"
     }
   }

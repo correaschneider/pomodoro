@@ -6,6 +6,7 @@ from typing import Callable, Optional
 from PySide6 import QtCore, QtWidgets
 
 from pomodoro_app.infrastructure.logging import get_logger, setup_logging
+from pomodoro_app.infrastructure.i18n import install as install_i18n
 
 
 logger = get_logger("pomodoro.adapters.gui.app")
@@ -59,6 +60,12 @@ def create_app(
             logger.info("Translator installed via hook")
         except Exception as exc:  # Defensive: do not block GUI on translator issues
             logger.exception("Failed to install translator: %s", exc)
+    else:
+        # Default: install system locale (or fallback)
+        try:
+            install_i18n(None)
+        except Exception:
+            logger.exception("Failed to install default translator")
 
     logger.info("QApplication created and configured")
     return app
