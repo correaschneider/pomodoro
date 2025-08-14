@@ -994,7 +994,7 @@
           8,
           9
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1093,7 +1093,7 @@
               "10.8"
             ],
             "details": "Scope:\n- Installation instructions per OS (Linux, Windows, macOS), including prerequisites (if any) and how to run\n- Describe artifact contents (where the binary/app is, where locales/icons/themes are)\n- Document plugin directory: ~/.pomodoro/plugins and OS-specific paths; how to add plugins\n- Note headless flags and troubleshooting (Qt platform plugin errors)\n- Deliverables: README sections and/or docs pages; link to Releases\nAcceptance criteria per platform:\n- Linux/Windows/macOS instructions verified using CI artifacts\n- Docs mention that locales/resources are packaged and how to verify\n- Plugin path documented and matches runtime behavior",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T16:05:55.104Z",
+      "updated": "2025-08-14T16:06:45.722Z",
       "description": "Tasks for master context"
     }
   }
