@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import gettext
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Callable
 
 from pomodoro_app.infrastructure.logging import get_logger
 
@@ -16,6 +16,8 @@ LOCALES_DIR: Path = Path(__file__).resolve().parents[3] / "resources" / "locales
 
 # Keep a reference to the currently installed translation
 _current_translation: gettext.NullTranslations = gettext.NullTranslations()
+_current_language: Optional[str] = None
+_listeners: set[Callable[[Optional[str]], None]] = set()
 
 
 def load_locale(lang_code: Optional[str]) -> gettext.NullTranslations:
@@ -45,11 +47,22 @@ def install(lang_code: Optional[str]) -> gettext.NullTranslations:
     global _current_translation
     translation = load_locale(lang_code)
     _current_translation = translation
+    globals()["_current_language"] = lang_code
 
     try:
         builtins.__dict__["_"] = translation.gettext  # type: ignore[assignment]
     except Exception:
         logger.exception("Failed to install _ builtin for gettext")
+
+    # Notify listeners of language change
+    try:
+        for cb in list(_listeners):
+            try:
+                cb(lang_code)
+            except Exception:
+                logger.exception("i18n listener failed")
+    except Exception:
+        logger.exception("failed notifying i18n listeners")
 
     return translation
 
@@ -87,6 +100,24 @@ def pgettext_(context: str, message: str) -> str:
     return gettext_(message)
 
 
+def on_locale_change(callback: Callable[[Optional[str]], None]) -> Callable[[], None]:
+    """Register a callback to be invoked when install() changes the locale.
+
+    Returns an unsubscribe function.
+    """
+
+    _listeners.add(callback)
+
+    def _unsubscribe() -> None:
+        _listeners.discard(callback)
+
+    return _unsubscribe
+
+
+def current_language() -> Optional[str]:
+    return _current_language
+
+
 __all__ = [
     "DOMAIN",
     "LOCALES_DIR",
@@ -95,6 +126,6 @@ __all__ = [
     "gettext_",
     "ngettext_",
     "pgettext_",
+    "on_locale_change",
+    "current_language",
 ]
-
-

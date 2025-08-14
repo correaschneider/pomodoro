@@ -685,7 +685,7 @@
               "7.1"
             ],
             "details": "- Add switch_language(lang_code): normalize -> install(lang_code); if language changed, emit notification\n- Provide event mechanism:\n  - If PySide6 available: I18nSignals(QObject) with language_changed = Signal(str)\n  - Always provide a lightweight callback registry: add_language_listener(cb), remove_language_listener(cb)\n- Ensure no-op if requested language equals current\n- Document thread-safety expectations (emit on GUI thread when using Qt)\n- Deliverables: switch_language API, signal/callbacks, documentation",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T13:54:55.661Z",
+      "updated": "2025-08-14T14:09:18.429Z",
       "description": "Tasks for master context"
     }
   }
