@@ -1034,7 +1034,7 @@
               "10.1"
             ],
             "details": "Scope:\n- Triggers: push, pull_request, workflow_dispatch (release handled separately)\n- Matrix: os = [ubuntu-latest, windows-latest, macos-latest]; python = ['3.12']\n- Steps: actions/checkout@v4; actions/setup-python@v5 with cache: 'pip'; pip install .[dev]\n- Prepare artifact naming convention: dist-${{ runner.os }}\nAcceptance criteria per platform:\n- Linux/Windows/macOS jobs start and complete setup successfully\n- Python 3.12 used; pip cache hits on subsequent runs",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1045,7 +1045,7 @@
               "10.4"
             ],
             "details": "Scope:\n- Steps: ruff check .; black --check .; pytest -q; pip-audit (allow non-blocking via continue-on-error or '|| true')\n- Test summaries as job output; fail build on lint/test failures\nAcceptance criteria per platform:\n- All OS run ruff, black, pytest; failures block subsequent steps\n- pip-audit runs on all OS and does not block if vulnerabilities are found (per policy)\n- Test artifacts (logs) visible in job output",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T16:02:57.602Z",
+      "updated": "2025-08-14T16:03:43.635Z",
       "description": "Tasks for master context"
     }
   }

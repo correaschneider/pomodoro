@@ -28,4 +28,23 @@ jobs:
           pip --version
           uname -a || ver || systeminfo | findstr /B /C:"OS Name" /C:"OS Version" || true
 
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .[dev]
+
+      - name: Lint (ruff)
+        run: ruff .
+
+      - name: Format check (black)
+        run: black --check .
+
+      - name: Test
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest -q
+
+      - name: Security audit (pip-audit)
+        run: pip-audit || true
+
 
