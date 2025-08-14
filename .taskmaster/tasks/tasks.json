@@ -1045,7 +1045,7 @@
               "10.4"
             ],
             "details": "Scope:\n- Steps: ruff check .; black --check .; pytest -q; pip-audit (allow non-blocking via continue-on-error or '|| true')\n- Test summaries as job output; fail build on lint/test failures\nAcceptance criteria per platform:\n- All OS run ruff, black, pytest; failures block subsequent steps\n- pip-audit runs on all OS and does not block if vulnerabilities are found (per policy)\n- Test artifacts (logs) visible in job output",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1056,7 +1056,7 @@
               "10.5"
             ],
             "details": "Scope:\n- Build: python -m PyInstaller pomodoro_app.spec\n- Artifact upload: actions/upload-artifact@v4 with name dist-${{ runner.os }}, path dist/\n- Optional packaging: Linux tar.gz (or AppImage if tooling available), Windows .zip/.exe, macOS .dmg (or .zip of .app)\n- Ensure resources (locales/icons/themes) and Qt plugins are included\nAcceptance criteria per platform:\n- Linux: artifact contains runnable binary and resources/locales/*.mo; Qt platform plugins present\n- Windows: artifact includes the .exe and required DLLs; resources present\n- macOS: artifact includes .app (and .dmg if produced); resources present; codesign not required for CI\n- Artifact names follow convention and are downloadable from CI",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T16:03:43.635Z",
+      "updated": "2025-08-14T16:04:19.294Z",
       "description": "Tasks for master context"
     }
   }

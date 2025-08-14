@@ -47,4 +47,15 @@ jobs:
       - name: Security audit (pip-audit)
         run: pip-audit || true
 
+      - name: Build package (PyInstaller)
+        run: |
+          python -m pip install pyinstaller
+          python -m PyInstaller pomodoro_app.spec
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ runner.os }}
+          path: dist/
+
 
