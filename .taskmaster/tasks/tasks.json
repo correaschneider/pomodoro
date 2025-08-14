@@ -1078,7 +1078,7 @@
               "10.6"
             ],
             "details": "Scope:\n- Add a step after build to run the produced binary headlessly\n  - Linux: env QT_QPA_PLATFORM=offscreen ./dist/<app>/... or pass '-platform offscreen'\n  - Windows: run .exe with '-platform offscreen'\n  - macOS: run binary within .app Contents/MacOS with '-platform offscreen'\n- Introduce optional env (e.g., POMODORO_EXIT_AFTER_START=1) to auto-exit after init\n- Sanity checks: verify presence of resources/locales/*.mo, icons, themes in artifact\nAcceptance criteria per platform:\n- Linux/Windows/macOS smoke run completes within timeout with exit code 0\n- Sanity checks pass: locales and icons found in artifact\n- Failures block release job",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1093,7 +1093,7 @@
               "10.8"
             ],
             "details": "Scope:\n- Installation instructions per OS (Linux, Windows, macOS), including prerequisites (if any) and how to run\n- Describe artifact contents (where the binary/app is, where locales/icons/themes are)\n- Document plugin directory: ~/.pomodoro/plugins and OS-specific paths; how to add plugins\n- Note headless flags and troubleshooting (Qt platform plugin errors)\n- Deliverables: README sections and/or docs pages; link to Releases\nAcceptance criteria per platform:\n- Linux/Windows/macOS instructions verified using CI artifacts\n- Docs mention that locales/resources are packaged and how to verify\n- Plugin path documented and matches runtime behavior",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           }
         ]
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T16:05:30.735Z",
+      "updated": "2025-08-14T16:05:55.104Z",
       "description": "Tasks for master context"
     }
   }
