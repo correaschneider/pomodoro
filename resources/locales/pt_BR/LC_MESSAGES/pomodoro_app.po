@@ -1,6 +1,42 @@
+#
 msgid ""
 msgstr ""
 
 msgid ""
 msgstr ""
 
+msgid "App"
+msgstr ""
+
+msgid "Break (min)"
+msgstr ""
+
+msgid "Focus (min)"
+msgstr ""
+
+msgid "Hidden to tray"
+msgstr ""
+
+msgid "Language"
+msgstr ""
+
+msgid "Pause"
+msgstr ""
+
+msgid "Pomodoro"
+msgstr ""
+
+msgid "Ready"
+msgstr ""
+
+msgid "Resume"
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "Start"
+msgstr ""
+
+msgid "Stop"
+msgstr ""

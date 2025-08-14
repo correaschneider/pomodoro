@@ -1,9 +1,12 @@
 #
 msgid ""
 msgstr ""
-
-msgid ""
-msgstr ""
+"Project-Id-Version: pomodoro_app\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Language: \n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 
 msgid "App"
 msgstr ""

@@ -708,7 +708,7 @@
               "7.3"
             ],
             "details": "- Use Babel (pybabel) or gettext toolchain; provide ready-to-run scripts:\n  - scripts/i18n/extract.sh: pybabel extract -F babel.cfg -o resources/locales/messages.pot .\n  - scripts/i18n/update.sh: pybabel update -D pomodoro_app -i resources/locales/messages.pot -d resources/locales -l en_US -l pt_BR\n  - scripts/i18n/compile.sh: pybabel compile -D pomodoro_app -d resources/locales\n- Create babel.cfg mapping for Python sources (and Qt .ui if used)\n- CI/build integration: add steps to run extract/update (optional) and compile prior to packaging\n- Packaging (e.g., PyInstaller): include resources/locales/**/LC_MESSAGES/*.mo via spec or hook\n- Developer docs: how to add a new locale and update catalogs",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T14:16:48.744Z",
+      "updated": "2025-08-14T14:19:54.594Z",
       "description": "Tasks for master context"
     }
   }

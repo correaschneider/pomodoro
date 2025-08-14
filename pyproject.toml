@@ -43,4 +43,8 @@ line-length = 100
 target-version = "py312"
 src = ["pomodoro_app", "tests"]
 
+[tool.poe.tasks]
+extract_i18n = "python scripts/i18n/extract_strings.py"
+compile_i18n = "python scripts/i18n/compile_catalogs.py"
+
 
