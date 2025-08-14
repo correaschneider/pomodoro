@@ -831,7 +831,7 @@
               "8.5"
             ],
             "details": "- Define SafeAppContext with limited methods/data (no direct file/network handles)\n- Map [access] flags to registry for auditing; deny load if required flags missing or invalid types\n- Prevent implicit escalation: default all permissions false\n- For filesystem/network usage, only allow via explicit app-provided facades (stubs for now) and record intent\n- Skip or degrade provide_settings_ui when GUI unavailable\n- Ensure plugin cannot mutate core singletons via app_ctx; pass copies or wrappers\n- Acceptance: Attempting to load plugin with missing [plugin] or malformed [access] denies load with recorded reason",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T14:59:35.477Z",
+      "updated": "2025-08-14T15:04:02.288Z",
       "description": "Tasks for master context"
     }
   }
