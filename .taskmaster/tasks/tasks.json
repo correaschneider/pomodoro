@@ -904,7 +904,7 @@
           3,
           5
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -912,7 +912,7 @@
             "description": "Design and implement a persistent cache for update checks in the user data directory with freshness checks to avoid redundant network calls.",
             "dependencies": [],
             "details": "Implement in infrastructure/update/checker.py. Use platformdirs.user_data_dir('pomodoro_app', appauthor=None) to store a file update_check.json. Schema: {\"last_checked\": unix_ts_int_utc, \"last_result\": {\"version\": str, \"changelog\": str, \"url\": str, \"hash\": str|null}}. Provide functions: load_cache(path) -> dict|None (gracefully handle missing/corrupt files), save_cache(path, data) with atomic write (write to temp then rename), is_cache_fresh(last_checked, interval_s) -> bool. Default interval: 86400s (once/day) configurable via settings. Offline-first behavior: cache only gates frequency; do not surface stale last_result as a new update. Ensure directory creation and permissions. Log parse errors and fall back to empty cache.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -923,7 +923,7 @@
               "9.1"
             ],
             "details": "Implement fetch_update_json(url, timeout_s) using urllib.request (avoid extra deps). Build Request with headers: User-Agent: \"PomodoroApp/{APP_VERSION} ({platform}; {python_ver})\", Accept: application/json. Timeout: 3–5s from settings. Handle URLError, HTTPError, timeout, and SSL errors by logging and returning None. Parse response as JSON with json.loads, validate required fields: version (str), changelog (str), url (str). Optionally accept hash. Validate the download URL via urllib.parse.urlparse (scheme http/https). Do not raise; return a dict on success or None on failure.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -934,7 +934,7 @@
               "9.2"
             ],
             "details": "Introduce helper compare_versions(remote_ver_str, local_ver_str, allow_prerelease=False) -> bool that returns True if a newer update should be surfaced. Use packaging.version.Version for both. Rules: if remote is pre-release and allow_prerelease is False, do not notify unless local is also pre-release and remote > local. If remote is stable and greater than local (stable or pre), notify. Handle invalid version strings by logging and skipping notification. Normalize versions consistently. Expose allow_prerelease via settings (default False).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -947,7 +947,7 @@
               "9.3"
             ],
             "details": "Create class UpdateChecker(QtCore.QObject) in infrastructure/update/checker.py with signal update_available(version:str, changelog:str, url:str). Methods: schedule(auto=True) uses QtCore.QTimer.singleShot(initial_delay_ms) to call _maybe_check(); _maybe_check() loads cache and returns early if is_cache_fresh and auto=True; otherwise spawns threading.Thread(target=_check_worker, daemon=True) guarded by a threading.Lock to prevent concurrent checks. check_now() bypasses freshness and invokes _check_worker in a background thread. _check_worker(): read settings (URL, timeout, interval, opt-out). If opt-out True, return. Call fetch_update_json(); on success, update cache last_checked and last_result. If compare_versions(...) True, emit update_available(remote_version, changelog, url). Ensure no UI blocking; catch and log exceptions. Respect interval via cache freshness gate only.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -958,7 +958,7 @@
               "9.4"
             ],
             "details": "Connect UpdateChecker.update_available to a handler that calls NotificationService.notify with title like \"Update available v{version}\" and message containing a short changelog summary. Provide an action/button \"Download\" that opens the URL via Qt.QDesktopServices.openUrl. Never auto-download. Add a menu or tray action \"Check for updates\" in the GUI that calls checker.check_now(). Ensure notifications are non-intrusive (use tray/notification per NotificationService fallback chain). Consider i18n of strings. Truncate overly long changelogs and include an ellipsis.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -973,7 +973,7 @@
               "9.5"
             ],
             "details": "Unit tests: cache load/save with tmp_path, atomic write, and freshness boundaries; version comparison across SemVer, pre-release, build metadata, and invalid versions. Networking: monkeypatch urllib to simulate success, timeout, HTTP error, invalid JSON; verify None on failure and that User-Agent header is set. Integration (pytest-qt): instantiate UpdateChecker with a test settings object and temp cache; simulate remote JSON responses; assert that update_available signal emits only when appropriate; verify check_now() bypasses freshness; verify opt-out prevents network calls. Performance: ensure schedule() returns immediately and no UI block (thread used).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T15:34:38.832Z",
+      "updated": "2025-08-14T15:48:34.261Z",
       "description": "Tasks for master context"
     }
   }
