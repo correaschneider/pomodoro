@@ -343,7 +343,7 @@
           2,
           3
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -351,7 +351,7 @@
             "description": "Create adapters/system_tray/tray.py with TrayController(QSystemTrayIcon), context menu scaffold, and icon setup.",
             "dependencies": [],
             "details": "Implement class TrayController(app: QApplication, service: TimerService, main_window: QMainWindow, bridge: GuiBridge). Create QMenu instance and assign via setContextMenu. Load tray icon from Qt resources (e.g., QIcon(\":/icons/app_tray\")) and call setIcon + show. Use gettext _() for all user-facing strings. Keep references to QAction objects as instance attributes for later state updates. Optionally connect QSystemTrayIcon.activated to show/hide the menu on click as per platform norms.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T13:24:21.600Z",
+      "updated": "2025-08-14T13:31:11.446Z",
       "description": "Tasks for master context"
     }
   }
