@@ -804,7 +804,7 @@
               "8.3"
             ],
             "details": "- Use packaging.version.Version for app __version__\n- Use packaging.specifiers.SpecifierSet(meta.compatible_with)\n- Function is_compatible(meta: PluginMeta, app_version: Version) -> bool\n- Log decision reason on mismatch (e.g., requires >=1.2,<2.0; app is 1.1.0)\n- Acceptance: Unit tests for pass/fail matrix across specifiers",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T14:42:34.139Z",
+      "updated": "2025-08-14T14:47:55.536Z",
       "description": "Tasks for master context"
     }
   }
