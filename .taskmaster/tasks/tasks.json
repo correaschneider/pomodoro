@@ -994,7 +994,7 @@
           8,
           9
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -1002,7 +1002,7 @@
             "description": "Author and validate a PyInstaller spec that bundles the app entry point, resources, and Qt binaries.",
             "dependencies": [],
             "details": "Scope:\n- File: pomodoro_app.spec\n- Entry point: pomodoro_app.__main__:main\n- Hidden imports: PySide6.QtCore, PySide6.QtGui, PySide6.QtWidgets, pluggy, packaging\n- Datas: resources/locales/*.mo → resources/locales; resources/icons/* → resources/icons; resources/themes/**/* → resources/themes\n- Binaries: include Qt platform plugins (platforms, imageformats) for PySide6; ensure runtime hook sets QT_PLUGIN_PATH at run-time to packaged directory\n- Runtime hooks: add a runtime hook to ensure Qt plugin path resolution and to log startup errors early\n- Build mode: one-folder per-OS builds acceptable; single-file optional\nAcceptance criteria per platform:\n- Linux: Built app starts without 'Could not load the Qt platform plugin \"xcb\"' errors; resources/locales/*.mo present in dist\n- Windows: Built .exe launches without missing DLL or platform plugin errors; icons/themes available\n- macOS: Built .app bundle runs (via open or direct binary); Qt plugins embedded; resources available",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T15:48:34.261Z",
+      "updated": "2025-08-14T15:52:45.401Z",
       "description": "Tasks for master context"
     }
   }
