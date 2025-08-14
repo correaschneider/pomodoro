@@ -1056,7 +1056,7 @@
               "10.5"
             ],
             "details": "Scope:\n- Build: python -m PyInstaller pomodoro_app.spec\n- Artifact upload: actions/upload-artifact@v4 with name dist-${{ runner.os }}, path dist/\n- Optional packaging: Linux tar.gz (or AppImage if tooling available), Windows .zip/.exe, macOS .dmg (or .zip of .app)\n- Ensure resources (locales/icons/themes) and Qt plugins are included\nAcceptance criteria per platform:\n- Linux: artifact contains runnable binary and resources/locales/*.mo; Qt platform plugins present\n- Windows: artifact includes the .exe and required DLLs; resources present\n- macOS: artifact includes .app (and .dmg if produced); resources present; codesign not required for CI\n- Artifact names follow convention and are downloadable from CI",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1067,7 +1067,7 @@
               "10.6"
             ],
             "details": "Scope:\n- Trigger: if startsWith(github.ref, 'refs/tags/v')\n- Needs: build\n- Use action (e.g., softprops/action-gh-release or actions/create-release) to create release and upload assets\n- Asset mapping: attach Windows exe/zip, Linux tar.gz/AppImage, macOS dmg/zip\n- Version alignment: verify tag matches application version (pyproject.toml) and fail if mismatched\nAcceptance criteria per platform:\n- Creating a tag vX.Y.Z triggers release; assets from all OS are attached\n- Release notes include build matrix summary\n- Version check passes when tag matches package version",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T16:04:19.294Z",
+      "updated": "2025-08-14T16:04:39.561Z",
       "description": "Tasks for master context"
     }
   }
