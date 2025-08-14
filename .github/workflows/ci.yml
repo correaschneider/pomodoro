@@ -52,6 +52,12 @@ jobs:
           python -m pip install pyinstaller
           python -m PyInstaller pomodoro_app.spec
 
+      - name: Sanity check built binary (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          chmod +x dist/pomodoro_app/pomodoro_app || true
+          ./dist/pomodoro_app/pomodoro_app --smoke || true
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -1067,7 +1067,7 @@
               "10.6"
             ],
             "details": "Scope:\n- Trigger: if startsWith(github.ref, 'refs/tags/v')\n- Needs: build\n- Use action (e.g., softprops/action-gh-release or actions/create-release) to create release and upload assets\n- Asset mapping: attach Windows exe/zip, Linux tar.gz/AppImage, macOS dmg/zip\n- Version alignment: verify tag matches application version (pyproject.toml) and fail if mismatched\nAcceptance criteria per platform:\n- Creating a tag vX.Y.Z triggers release; assets from all OS are attached\n- Release notes include build matrix summary\n- Version check passes when tag matches package version",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1078,7 +1078,7 @@
               "10.6"
             ],
             "details": "Scope:\n- Add a step after build to run the produced binary headlessly\n  - Linux: env QT_QPA_PLATFORM=offscreen ./dist/<app>/... or pass '-platform offscreen'\n  - Windows: run .exe with '-platform offscreen'\n  - macOS: run binary within .app Contents/MacOS with '-platform offscreen'\n- Introduce optional env (e.g., POMODORO_EXIT_AFTER_START=1) to auto-exit after init\n- Sanity checks: verify presence of resources/locales/*.mo, icons, themes in artifact\nAcceptance criteria per platform:\n- Linux/Windows/macOS smoke run completes within timeout with exit code 0\n- Sanity checks pass: locales and icons found in artifact\n- Failures block release job",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T16:04:39.561Z",
+      "updated": "2025-08-14T16:05:30.735Z",
       "description": "Tasks for master context"
     }
   }
