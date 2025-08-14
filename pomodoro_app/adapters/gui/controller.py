@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
-from PySide6 import QtCore
+from PySide6 import QtCore, QtWidgets
 
 from pomodoro_app.core.models import TimerState
 from pomodoro_app.core.timer_service import TimerService
@@ -48,6 +48,7 @@ class GuiController(QtCore.QObject):
         self._window.pauseRequested.connect(self._service.pause)
         self._window.resumeRequested.connect(self._service.resume)
         self._window.stopRequested.connect(self._on_stop_requested)
+        self._window.settingsRequested.connect(self._show_settings_dialog)
 
     def _wire_bridge_to_ui(self) -> None:
         if self._unsubscribe:
@@ -97,6 +98,27 @@ class GuiController(QtCore.QObject):
     def _on_cycle_end(self, session: object) -> None:  # noqa: ARG002
         # For now, just ensure buttons reflect IDLE after cycle end (state signal also comes)
         self._apply_button_states(TimerState.IDLE)
+
+    @QtCore.Slot()
+    def _show_settings_dialog(self) -> None:
+        try:
+            from .settings_dialog import SettingsDialog
+
+            dlg = SettingsDialog(self._window)
+            if dlg.exec() == QtWidgets.QDialog.Accepted:  # type: ignore[attr-defined]
+                # Reload defaults after persistence and reflect on UI if idle
+                from pomodoro_app.infrastructure.db.connection import connect
+                from pomodoro_app.infrastructure.db.schema import ensure_schema
+                from pomodoro_app.infrastructure.db.integration import load_settings
+
+                conn = connect()
+                ensure_schema(conn)
+                settings = load_settings(conn)
+                self._default_focus_seconds = int(settings.get("durations", {}).get("focus", 25 * 60))
+                if self._service.state == TimerState.IDLE:
+                    self._window.update_remaining_seconds(self._default_focus_seconds)
+        except Exception:
+            logger.exception("failed to open/apply settings dialog")
 
     # --- Helpers -------------------------------------------------------------
     def _apply_button_states(self, state: object) -> None:
