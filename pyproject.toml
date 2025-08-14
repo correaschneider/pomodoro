@@ -28,6 +28,7 @@ dev = [
   "ruff",
   "pip-audit",
   "babel",
+  "polib",
 ]
 
 [project.scripts]

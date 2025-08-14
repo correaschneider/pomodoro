@@ -696,7 +696,7 @@
               "7.1"
             ],
             "details": "- Directories:\n  - resources/locales/en_US/LC_MESSAGES/pomodoro_app.po\n  - resources/locales/pt_BR/LC_MESSAGES/pomodoro_app.po\n- Initialize headers (Project-Id-Version, Language, Plural-Forms, etc.); add at least one sample msgid\n- Compile to .mo in same LC_MESSAGES directories (temporary manual compile acceptable until scripts exist)\n- Ensure language code normalization mapping covers en-US -> en_US and pt-BR -> pt_BR\n- Add to VCS; mark untranslated entries as fuzzy\n- Deliverables: two .po files and compiled .mo placeholders",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T14:09:18.429Z",
+      "updated": "2025-08-14T14:16:48.744Z",
       "description": "Tasks for master context"
     }
   }
