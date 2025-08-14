@@ -842,7 +842,7 @@
               "8.5"
             ],
             "details": "- Create logger per plugin: logging.getLogger(f\"plugin.{name}\")\n- Configure a dedicated FileHandler plugin_errors.log (in user data dir) for loader and hook invocation errors\n- Ensure plugin loggers inherit app handlers but can be tuned; avoid duplicate logs via propagate settings\n- Include correlation fields: plugin name, phase (discovery/load/hook), exception traceback\n- Acceptance: When a plugin raises in a hook, error is written to plugin_errors.log without crashing app",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T15:04:02.288Z",
+      "updated": "2025-08-14T15:05:21.800Z",
       "description": "Tasks for master context"
     }
   }

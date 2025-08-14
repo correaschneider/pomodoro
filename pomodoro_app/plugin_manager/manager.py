@@ -106,6 +106,11 @@ def load_and_register_plugins(pm: pluggy.PluginManager, base_dir: Path | None = 
         try:
             module_name = f"plugin_{meta.plugin.name}"
             module = _load_module_from_path(module_name, main_py)
+            # Per-plugin logger name hint for plugin authors
+            try:
+                setattr(module, "__plugin_logger_name__", f"plugin.{meta.plugin.name}")
+            except Exception:
+                pass
             pm.register(module)
             logger.info("registered plugin %s", meta.plugin.name)
             _record_registry(meta, folder, status="loaded", reason=None)
