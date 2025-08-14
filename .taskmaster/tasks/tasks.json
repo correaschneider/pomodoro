@@ -793,7 +793,7 @@
               "8.2"
             ],
             "details": "- Read with tomllib (py>=3.11) or tomli fallback\n- Required sections/keys:\n  - [plugin]: name (str, slug-like), version (SemVer string), compatible_with (PEP 440 specifier string)\n  - [access]: filesystem (bool, default false), network (bool, default false), requires_gui (bool, default false)\n- Validate: unique name, safe characters [a-zA-Z0-9_-], version is valid Version\n- Return a dataclass PluginMeta with fields and source path\n- On missing/invalid, raise PluginMetaError with reasons\n- Acceptance: Unit tests cover valid/invalid TOML cases and defaults",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T14:38:36.822Z",
+      "updated": "2025-08-14T14:42:34.139Z",
       "description": "Tasks for master context"
     }
   }
