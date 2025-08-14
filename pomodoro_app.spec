@@ -83,5 +83,3 @@ coll = COLLECT(
     upx_exclude=[],
     name="pomodoro_app",
 )
-
-

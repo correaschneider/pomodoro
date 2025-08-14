@@ -1011,7 +1011,7 @@
             "description": "Ensure a user plugin directory is discovered and created on first run and is documented.",
             "dependencies": [],
             "details": "Scope:\n- Path: ~/.pomodoro/plugins\n- Implement on startup: if directory does not exist, create it; log path on startup\n- Expose helper: get_plugin_dir() for other components\n- Document path and usage in docs/README (later consolidated in docs task)\nAcceptance criteria per platform:\n- Linux: ~/.pomodoro/plugins auto-created on first run\n- Windows: %USERPROFILE%\\.pomodoro\\plugins auto-created on first run\n- macOS: /Users/<user>/.pomodoro/plugins auto-created on first run\n- App logs show the directory path on startup",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T15:52:45.401Z",
+      "updated": "2025-08-14T15:56:08.054Z",
       "description": "Tasks for master context"
     }
   }

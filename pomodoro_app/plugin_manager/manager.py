@@ -27,6 +27,22 @@ def get_plugins_base_dir(app_name: str = "pomodoro_app") -> Path:
     return Path(user_data_dir(app_name)) / "plugins"
 
 
+def ensure_plugins_base_dir(app_name: str = "pomodoro_app") -> Path:
+    """Ensure the plugins base directory exists, creating it if missing.
+
+    Returns the ensured path. This is safe to call multiple times.
+    """
+
+    base_dir = get_plugins_base_dir(app_name)
+    try:
+        base_dir.mkdir(parents=True, exist_ok=True)
+        logger.info("plugins base dir ready at %s", base_dir)
+    except Exception:
+        logger.exception("failed to create plugins base dir at %s", base_dir)
+        plugin_err_logger.error("failed to create plugins base dir at %s", base_dir)
+    return base_dir
+
+
 def discover_plugin_folders(base_dir: Path | None = None) -> List[Path]:
     """Discover plugin folders containing at least a main.py file.
 
@@ -156,6 +172,7 @@ def get_plugin_registry() -> List[Dict[str, Any]]:
 
 __all__ = [
     "get_plugins_base_dir",
+    "ensure_plugins_base_dir",
     "discover_plugin_folders",
     "create_plugin_manager",
     "load_and_register_plugins",
