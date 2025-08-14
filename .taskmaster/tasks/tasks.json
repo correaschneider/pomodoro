@@ -428,7 +428,7 @@
           3,
           4
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -436,7 +436,7 @@
             "description": "Define the NotificationService interface with notify() and convenience methods for cycle start/end.",
             "dependencies": [],
             "details": "Create adapters/notifications/service.py with class NotificationService(tray=None, overlay=None). Methods: notify(title, message, actions=None, urgency=\"normal\"), on_cycle_start(session) and on_cycle_end(session). Actions is an optional list of action descriptors (id,label,callback). Urgency enum or string mapped across backends. Ensure logger name pomodoro.adapters.gui is used. Document thread-safety expectations (notify callable from domain thread; UI interactions must hop to Qt thread). Provide simple no-op defaults for missing tray/overlay. Expose a minimal backend interface contract: send(title, message, actions=None, urgency=\"normal\") -> bool.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T15:22:26.335Z",
+      "updated": "2025-08-14T15:25:49.707Z",
       "description": "Tasks for master context"
     }
   }
