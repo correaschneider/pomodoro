@@ -450,7 +450,7 @@
               "5.1"
             ],
             "details": "Implement _choose_backend() using sys.platform/platform.system(). Linux: try import notify2 then LinuxNotify2(); Windows: try import win10toast then WinToastBackend(); macOS: try import pync then MacPyncBackend(); if none available return None. Lazy import to avoid hard dependencies. Cache chosen backend; on send() failure set backend to None (to trigger fallbacks). Provide reset method for tests. Include detection/guards for WSL or headless Linux (skip notify2 init if no DBus).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -472,7 +472,7 @@
               "5.1"
             ],
             "details": "Implement class WinToastBackend with send(). Instantiate ToastNotifier once. Use show_toast(title, message, duration=5, threaded=True). Note that classic win10toast does not support action buttons; ignore actions. Consider win10toast-click if available, but keep optional. Map urgency to duration or ignore if unsupported. Wrap calls in try/except; return True on success else False. Ensure calls do not block the UI thread.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -483,7 +483,7 @@
               "5.1"
             ],
             "details": "Implement class MacPyncBackend with send() trying pync.Notifier.notify(message, title=title). If pync import fails at construction, provide an OsascriptBackend alternative. OsascriptBackend.send() uses subprocess.run([\"osascript\", \"-e\", applescript], timeout=2) with escaped strings: display notification \"{msg}\" with title \"{title}\". macOS does not support arbitrary action buttons via UserNotifications/osascript; ignore actions. Return True on zero exit code; handle CalledProcessError/TimeoutExpired by returning False. Keep non-blocking and robust.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T15:27:14.023Z",
+      "updated": "2025-08-14T15:30:00.740Z",
       "description": "Tasks for master context"
     }
   }

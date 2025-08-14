@@ -31,6 +31,32 @@ class NotificationService:
 
     # Backend selection to be implemented in later subtasks
     def choose_backend(self) -> None:
+        # Try platform-specific backends by import
+        try:
+            from .linux_notify import LinuxNotify2Backend  # type: ignore
+
+            self._backend = LinuxNotify2Backend()
+            return
+        except Exception:
+            pass
+        try:
+            from .windows_toast import WinToastBackend  # type: ignore
+
+            self._backend = WinToastBackend()
+            return
+        except Exception:
+            pass
+        try:
+            from .macos_notify import MacPyncBackend, MacOsascriptBackend  # type: ignore
+
+            try:
+                self._backend = MacPyncBackend()
+                return
+            except Exception:
+                self._backend = MacOsascriptBackend()
+                return
+        except Exception:
+            pass
         self._backend = None
 
     def notify(self, title: str, message: str, actions: Optional[Iterable[tuple[str, Any]]] = None, urgency: str = "normal") -> None:
