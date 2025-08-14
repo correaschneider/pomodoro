@@ -461,7 +461,7 @@
               "5.1"
             ],
             "details": "Implement class LinuxNotify2 implementing send(). On first use, call notify2.init(app_name) with try/except for DBus errors. Create notify2.Notification(title, message, icon=None). Map urgency to notify2.URGENCY_LOW/NORMAL/CRITICAL. If actions are provided and library supports them, attach action callbacks via add_action; otherwise ignore gracefully. Use .show() and return True on success. Catch exceptions (e.g., DBusException), log debug, and rethrow or return False to trigger fallback. Avoid blocking; no busy waits.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T15:25:49.707Z",
+      "updated": "2025-08-14T15:27:14.023Z",
       "description": "Tasks for master context"
     }
   }
