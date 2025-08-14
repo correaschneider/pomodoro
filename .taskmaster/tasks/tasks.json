@@ -1023,7 +1023,7 @@
               "10.2"
             ],
             "details": "Scope:\n- Commands: pip install .[dev]; python -m PyInstaller pomodoro_app.spec\n- Validate the dist output: ensure locales (.mo), icons, themes packaged\n- Test run: launch with headless-friendly settings where necessary (e.g., QT_QPA_PLATFORM=offscreen or '-platform offscreen')\n- Adjust spec (datas, binaries, runtime hooks) based on findings\nAcceptance criteria:\n- On the developer OS, built app starts successfully\n- Resource presence verified: at least one .mo file and icons are in dist\n- No missing Qt platform plugin errors",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T15:56:08.054Z",
+      "updated": "2025-08-14T16:02:17.964Z",
       "description": "Tasks for master context"
     }
   }

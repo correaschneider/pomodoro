@@ -11,7 +11,7 @@ from PyInstaller.utils.hooks import (
 
 
 # Project paths
-project_root = Path(__file__).parent.resolve()
+project_root = Path.cwd().resolve()
 entry_script = project_root / "pomodoro_app" / "__main__.py"
 
 # Hidden imports: ensure PySide6 modules, pluggy, and packaging are discovered
@@ -57,10 +57,8 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name="pomodoro_app",
     debug=False,
     bootloader_ignore_signals=False,
