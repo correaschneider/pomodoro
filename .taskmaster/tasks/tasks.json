@@ -765,7 +765,7 @@
           3,
           7
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -868,7 +868,7 @@
               "8.5"
             ],
             "details": "- Location: plugins/example_plugin/\n- plugin.toml with:\n  - [plugin] name=\"example_plugin\", version=\"0.1.0\", compatible_with=\">=1.0,<2.0\"\n  - [access] filesystem=false, network=false, requires_gui=false\n- main.py implementing:\n  - on_app_start logs a message\n  - on_timer_tick counts ticks\n  - provide_settings_ui returns None (headless-safe)\n- Include README snippet for usage\n- Acceptance: Discovery finds it under a temp plugin root and loads it successfully",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -887,7 +887,7 @@
               "8.9"
             ],
             "details": "- Unit tests:\n  - TOML parsing defaults and validation errors\n  - SemVer compatibility matrix\n  - Permission defaults and deny-on-missing\n- Integration tests:\n  - Temporary plugin dirs loaded; callbacks invoked with correct data\n  - GUI-only plugin skipped when GUI unavailable\n  - Plugin raising exceptions during hooks does not crash; errors logged\n  - Per-plugin logger writes entries; plugin_errors.log created\n- CI-friendly: no real network/filesystem writes beyond temp dirs; use monkeypatch\n- Acceptance: All tests pass across supported platforms",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T15:20:15.206Z",
+      "updated": "2025-08-14T15:22:26.335Z",
       "description": "Tasks for master context"
     }
   }

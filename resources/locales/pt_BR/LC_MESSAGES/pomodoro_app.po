@@ -2,6 +2,33 @@
 msgid ""
 msgstr ""
 
+msgid "Pomodoro"
+msgstr "Pomodoro"
+
+msgid "App"
+msgstr "Aplicativo"
+
+msgid "Settings"
+msgstr "Configurações"
+
+msgid "Start"
+msgstr "Iniciar"
+
+msgid "Pause"
+msgstr "Pausar"
+
+msgid "Resume"
+msgstr "Retomar"
+
+msgid "Stop"
+msgstr "Parar"
+
+msgid "Ready"
+msgstr "Pronto"
+
+msgid "Hidden to tray"
+msgstr "Oculto na bandeja"
+
 msgid ""
 msgstr ""
 
