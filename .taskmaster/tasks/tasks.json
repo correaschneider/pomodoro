@@ -1097,11 +1097,24 @@
             "testStrategy": ""
           }
         ]
+      },
+      {
+        "id": 11,
+        "title": "Editable install fix: constrain setuptools package discovery to pomodoro_app* and exclude resources",
+        "description": "Update pyproject.toml to configure setuptools package discovery to only include pomodoro_app* and exclude the top-level resources directory, preventing the 'Multiple top-level packages discovered' error. Validate pip install -e .[dev] and that the pomodoro-app --smoke command runs.",
+        "details": "Goal: Ensure editable installs work by having setuptools discover only the intended package namespace (pomodoro_app) and explicitly exclude the top-level resources directory (and other non-package folders) from discovery. Do not change the license field in this task.\n\nImplementation steps:\n- pyproject.toml changes (only the setuptools discovery settings; do not modify the license field):\n  - Add or update the setuptools find configuration to limit discovery to the pomodoro_app namespace and exclude the resources directory.\n  - Example snippet to add under the existing pyproject (keep existing project metadata intact):\n    [tool.setuptools.packages.find]\n    include = [\"pomodoro_app*\"]\n    exclude = [\n      \"resources*\",\n      \"tests*\",\n      \"docs*\",\n      \"examples*\",\n      \"scripts*\",\n      \"build*\",\n      \"dist*\"\n    ]\n  - If [tool.setuptools] table is present, ensure the above is nested appropriately per setuptools' pyproject layout. Do not introduce changes to [project.license] or any license-related settings.\n- Verify console script entry point remains correctly configured so pomodoro-app invokes pomodoro_app.__main__:main. If [project.scripts] already contains:\n    [project.scripts]\n    pomodoro-app = \"pomodoro_app.__main__:main\"\n  then leave it unchanged; otherwise, add it (no changes to license).\n- Ensure no accidental package discovery of top-level resources:\n  - The resources directory should not contain an __init__.py; if it does, remove it to avoid it being considered a package. This is optional if exclusion above fully solves the error but recommended to prevent confusion.\n- Optional (only if needed for sdist/wheel contents; not required for editable install): if some runtime assets live inside the pomodoro_app package tree, verify [tool.setuptools.package-data] or include-package-data handles them. Do not move or package the top-level resources directory here; Task 10’s PyInstaller datas already handle it.\n- Keep compatibility with Task 10 (PyInstaller): the exclusion from setuptools does not affect PyInstaller datas configured in the spec; no changes to the spec file are needed in this task.\n- Developer UX: Document in the README/CONTRIBUTING that developers should use pip install -e .[dev] and that pomodoro-app --smoke can be used for a headless smoke run. Mention QT_QPA_PLATFORM=offscreen or minimal to avoid GUI display requirements in headless environments.\n\nNotes:\n- Do not change or remove the license field in pyproject.toml.\n- Avoid touching unrelated metadata (name, version, authors, classifiers, etc.).",
+        "testStrategy": "Manual and scripted verification in a fresh virtual environment:\n1) Environment setup:\n- python -m venv .venv && source .venv/bin/activate (or use Windows equivalent)\n- python -m pip install -U pip setuptools wheel\n\n2) Editable install succeeds without discovery error:\n- Run: pip install -e .[dev]\n- Assert: install completes without 'Multiple top-level packages discovered' and without errors.\n\n3) Verify only the intended package is discovered:\n- python - <<'PY'\\nimport importlib.util as u\\nassert u.find_spec('pomodoro_app') is not None, 'pomodoro_app not importable'\\nassert u.find_spec('resources') is None, 'resources should not be importable as a package'\\nprint('OK')\\nPY\n\n4) Console entry point smoke run:\n- On Linux/macOS headless: QT_QPA_PLATFORM=offscreen pomodoro-app --smoke\n- On Windows CI/desktop: set QT_QPA_PLATFORM=offscreen && pomodoro-app --smoke\n- Expected: exit code 0; minimal log output; no GUI crash.\n\n5) Sanity checks:\n- pip show -f pomodoro-app (or the project name) shows editable install path referencing the working tree; no resources top-level package listed.\n- Optionally build a wheel to ensure discovery config does not break standard builds: python -m build --wheel (should succeed); inspect wheel to confirm no top-level 'resources' package is included.\n\n6) Regression check vs Task 10:\n- Confirm no changes were made to the PyInstaller spec or license field.\n- Validate that PyInstaller build (if run) still bundles resources via datas as before.",
+        "status": "in-progress",
+        "dependencies": [
+          10
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T16:06:45.722Z",
+      "updated": "2025-08-14T16:19:06.570Z",
       "description": "Tasks for master context"
     }
   }
