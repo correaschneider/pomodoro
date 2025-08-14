@@ -373,7 +373,7 @@
               "4.1"
             ],
             "details": "Connect to bridge.on_tick(elapsed_s, remaining_s, state) and bridge.on_state(state) signals. Implement update_tooltip(state, remaining_s) that formats as \"State – mm:ss\" with zero-padded minutes/seconds and localized state labels. Handle IDLE by showing app name and hint (e.g., \"Idle – 00:00\"). Avoid heavy work in the slot; debounce only if necessary. Ensure thread-safety by emitting/handling signals on the GUI thread.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T13:35:22.301Z",
+      "updated": "2025-08-14T13:41:42.475Z",
       "description": "Tasks for master context"
     }
   }

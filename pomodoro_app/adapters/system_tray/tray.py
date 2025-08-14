@@ -4,6 +4,10 @@ from typing import Optional, Callable
 
 from PySide6 import QtGui, QtWidgets
 
+from pomodoro_app.core.models import TimerState
+from pomodoro_app.adapters.gui.bridge import GuiBridge
+from pomodoro_app.adapters.gui.time_utils import format_mm_ss
+
 from pomodoro_app.core.timer_service import TimerService
 
 from pomodoro_app.infrastructure.logging import get_logger
@@ -28,11 +32,14 @@ class TrayController(QtWidgets.QSystemTrayIcon):
         on_quit: Optional[Callable[[], None]] = None,
         service: Optional[TimerService] = None,
         main_window: Optional[QtWidgets.QMainWindow] = None,
+        bridge: Optional[GuiBridge] = None,
     ) -> None:
         super().__init__(parent)
 
         self._service = service
         self._main_window = main_window
+        self._bridge = bridge
+        self._last_remaining: int = 0
 
         if icon is not None:
             self.setIcon(icon)
@@ -78,6 +85,11 @@ class TrayController(QtWidgets.QSystemTrayIcon):
         else:
             self._act_toggle_window.setEnabled(False)
 
+        # Live tooltip via GuiBridge
+        if self._bridge is not None:
+            self._bridge.tick.connect(self._on_tick)
+            self._bridge.state.connect(self._on_state)
+
         self.setContextMenu(self._menu)
         self.setToolTip("Pomodoro")
 
@@ -101,6 +113,22 @@ class TrayController(QtWidgets.QSystemTrayIcon):
                 self._main_window.activateWindow()
         except Exception:
             logger.exception("toggle window failed")
+
+    # Tooltip updates ---------------------------------------------------------
+    def _on_tick(self, elapsed: int, remaining: int, state: object) -> None:  # noqa: ARG002
+        self._last_remaining = int(remaining)
+        self._update_tooltip(state, self._last_remaining)
+
+    def _on_state(self, state: object) -> None:
+        # Update tooltip using last known remaining seconds
+        self._update_tooltip(state, self._last_remaining)
+
+    def _update_tooltip(self, state: object, remaining: int) -> None:
+        try:
+            state_name = state.name if isinstance(state, TimerState) else str(state)
+            self.setToolTip(f"{state_name} – {format_mm_ss(remaining)}")
+        except Exception:
+            logger.exception("failed to update tooltip")
 
     # Expose actions for later wiring/toggling in subsequent subtasks
     @property
