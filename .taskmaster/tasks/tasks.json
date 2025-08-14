@@ -818,7 +818,7 @@
               "8.4"
             ],
             "details": "- Build PluginManager(\"pomodoro_app\"); add hookspecs\n- For each discovered folder:\n  - Parse metadata (reuse 8.3) and compatibility (8.4)\n  - If meta.access.requires_gui and GUI not available (no Qt or headless), skip with log\n  - Load module via importlib.util.spec_from_file_location and module_from_spec; execute in isolated module name: pomodoro_plugin_<safe_name>\n  - Require plugin uses pluggy.HookimplMarker(\"pomodoro_app\"); registration: pm.register(module, name=meta.plugin.name)\n  - Maintain registry dict with meta and resolved permissions\n- Errors during load/registration are caught and recorded for logging (7) and auditing\n- Acceptance: Integration test loads a valid plugin and pm.get_plugins() includes it",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T14:47:55.536Z",
+      "updated": "2025-08-14T14:59:35.477Z",
       "description": "Tasks for master context"
     }
   }
