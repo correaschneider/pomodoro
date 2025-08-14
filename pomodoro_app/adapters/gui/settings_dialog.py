@@ -89,6 +89,7 @@ class SettingsDialog(QtWidgets.QDialog):
             # Keep dialog open? For now, still close but values might not persist
             pass
         super().accept()
+        # Close once; do not reopen. The controller listens for Accepted and refreshes defaults.
 
 
 __all__ = ["SettingsDialog"]

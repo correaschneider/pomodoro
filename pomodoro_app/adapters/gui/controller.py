@@ -63,7 +63,7 @@ class GuiController(QtCore.QObject):
     @QtCore.Slot(object)
     def _on_start_requested(self, duration_s: object | None) -> None:
         # duration_s may be None or int; ignore invalid types defensively
-        dur = duration_s if isinstance(duration_s, int) else None
+        dur = duration_s if isinstance(duration_s, int) else self._default_focus_seconds
         try:
             self._service.start_focus(dur_s=dur)
         except Exception:
