@@ -77,6 +77,11 @@ def main(argv: list[str] | None = None) -> int:
 
         def _factory(_app: object) -> object:
             win = MainWindow()
+            # Initialize label with configured focus duration
+            try:
+                win.update_remaining_seconds(default_focus)
+            except Exception:
+                logging.getLogger("pomodoro").exception("failed to set initial focus display")
             # Wire controller so that Play/Pause/Resume/Stop control the service
             GuiController(win, service, bridge, default_focus_seconds=default_focus)
             return win

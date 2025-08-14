@@ -1134,11 +1134,25 @@
         "dependencies": [],
         "priority": "medium",
         "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "GUI: Initialize timer label with configured Focus duration on startup",
+        "description": "When launching with --gui, set the MainWindow timer display to the configured Focus duration (mm:ss) instead of 00:00, without starting the timer. Read the value from settings and apply it during GUI bootstrap.",
+        "details": "Scope and intent:\n- Only affect the initial label value shown when the GUI starts. Do not auto-start the timer, do not change domain states, and do not alter Stop/reset behavior (Task 13 remains authoritative for Stop → 00:00).\n\nImplementation plan:\n1) Retrieve configured Focus duration (seconds):\n   - Use the existing settings storage (Task 6). Prefer a single helper that returns seconds with a robust default.\n   - Expected location: infrastructure/db/settings_repository.py or a SettingsService abstraction used by the GUI.\n   - Suggested access patterns (pick what exists in codebase):\n     - settings_service.get_int(\"durations.focus\", default=25*60)\n     - or settings[\"durations\"][\"focus\"] with fallback to DEFAULT_FOCUS_S (e.g., 25*60).\n   - Validate and normalize:\n     - If missing/invalid, fall back to default (>= 60 and clamp to >= 0).\n     - Ensure the return type is int seconds.\n\n2) Apply initial label at GUI bootstrap:\n   - File: adapters/gui/app.py (or the CLI bootstrap path that handles --gui).\n   - After constructing MainWindow but before show(), set the timer label to the configured Focus duration.\n   - Do NOT start the timer; this is a static label initialization only.\n   - Use an existing formatting function (from Task 3) to render seconds as mm:ss. If no public setter exists, add a small method to MainWindow:\n     - MainWindow.set_timer_display_seconds(seconds: int) → internally formats and sets the timer QLabel text without changing state.\n     - Alternatively, reuse a shared util like format_mm_ss(seconds) if already present.\n\n   Example (illustrative):\n   - in adapters/gui/app.py\n     settings = settings_service.load()  # or direct repository calls\n     focus_s = settings_service.get_int(\"durations.focus\", default=25*60)\n     win = MainWindow(timer_controller, ...)\n     win.set_timer_display_seconds(max(0, int(focus_s)))\n     win.show()\n\n3) UI/State separation considerations:\n   - The label set here is a one-time initialization for the Idle state at startup.\n   - On any subsequent tick/state updates (RUNNING/PAUSED/IDLE changes), the existing GUI update pipeline should continue to update the label as it already does (Task 3). No changes needed to bridge/signals.\n   - Stop-triggered IDLE reset to 00:00 (Task 13) must remain unchanged.\n\n4) Defaults and resilience:\n   - If settings storage is unavailable or returns bad data, default to DEFAULT_FOCUS_S (e.g., 1500) to avoid 00:00.\n   - Ensure no exceptions are thrown in headless or missing-config scenarios; log a warning and proceed with default.\n\n5) CLI handling:\n   - Apply this initialization only in the GUI startup path (--gui). If the app has multiple entry points, gate this behavior in the GUI bootstrap code.\n\n6) Documentation/Notes:\n   - Briefly document the behavior in a changelog/dev note: \"GUI now initializes idle display to configured Focus duration at startup.\"\n",
+        "testStrategy": "Automated tests (pytest-qt):\n1) Initial label reflects configured Focus duration\n   - Arrange: monkeypatch SettingsService/Repository to return durations.focus = 20*60 (1200 sec).\n   - Act: launch QApplication and create MainWindow via the standard GUI bootstrap path used for --gui.\n   - Assert: the timer QLabel text is \"20:00\" before any timer actions occur; confirm timer state is IDLE and no timer thread is running.\n\n2) Fallback to default on missing/invalid setting\n   - Arrange: settings fetch raises KeyError or returns an invalid value (e.g., None, negative, non-numeric).\n   - Act: bootstrap GUI.\n   - Assert: label shows default (e.g., \"25:00\"), no crash, and a warning was logged.\n\n3) Does not auto-start the timer\n   - Arrange/Act: bootstrap GUI with any valid duration.\n   - Assert: TimerService.start_* was not called (spy/mocks); no tick signals received before user action.\n\n4) Regression: Stop still resets to 00:00 (Task 13 behavior intact)\n   - Arrange: start a focus session briefly, then issue Stop; wait for IDLE transition.\n   - Assert: label is \"00:00\" after Stop-induced IDLE.\n\nManual verification:\n- Run: python -m pomodoro_app --gui (or equivalent entry point).\n- Confirm the initial label equals the configured Focus duration from settings (e.g., 25:00 by default), the timer is not running, and existing tests continue to pass.\n",
+        "status": "done",
+        "dependencies": [
+          3,
+          6
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T16:49:26.297Z",
+      "updated": "2025-08-14T16:55:52.017Z",
       "description": "Tasks for master context"
     }
   }
