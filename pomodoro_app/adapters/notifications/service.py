@@ -99,3 +99,26 @@ class NotificationService:
 __all__ = ["NotificationBackend", "OverlayAdapter", "NotificationService"]
 
 
+def wire_timer_notifications(service: Any, notifier: NotificationService) -> Any:
+    """Subscribe to TimerService events and send notifications.
+
+    Returns an unsubscribe callable.
+    """
+
+    def _on_cycle_end(session: Any) -> None:  # noqa: ARG001
+        try:
+            notifier.on_cycle_end()
+        except Exception:
+            logger.exception("failed to send cycle_end notification")
+
+    unsub_end = service.on_cycle_end(_on_cycle_end)
+
+    def _unsubscribe() -> None:
+        try:
+            unsub_end()
+        except Exception:
+            pass
+
+    return _unsubscribe
+
+

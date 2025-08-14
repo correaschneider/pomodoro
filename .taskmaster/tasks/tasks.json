@@ -428,7 +428,7 @@
           3,
           4
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -494,7 +494,7 @@
               "5.1"
             ],
             "details": "Create adapters/notifications/overlay.py with class OverlayWidget(QWidget) exposing enabled property and show_message(title, message). Use Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint; setAttribute(Qt.WA_TranslucentBackground). Build simple layout with title and message labels. Implement fade-in/out via QPropertyAnimation on windowOpacity and a QTimer for auto-close. Support user preferences: enabled flag, display duration, position (e.g., top-right), font/size if available. Provide a lightweight controller wrapper that checks for QApplication instance and display availability; in headless environments, enabled becomes False.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -507,7 +507,7 @@
               "5.1"
             ],
             "details": "In NotificationService.notify(): if backend exists, attempt backend.send(); on exception or False, set backend=None. If no backend and overlay and overlay.enabled, schedule overlay.show_message(...) on the Qt main thread (QMetaObject.invokeMethod or QTimer.singleShot). Else if tray available, call tray.showMessage(title, message, icon, msecs). Always log info with logger. Wrap each step in try/except so a failure in overlay or tray still proceeds to logging without crashing. Optionally degrade urgency mapping for tray. Ignore actions when the chosen sink cannot support them.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -518,7 +518,7 @@
               "5.7"
             ],
             "details": "Wire NotificationService to core TimerService: on cycle start/end, call on_cycle_start/end to produce messages like \"Focus started\" / \"Break started\" / \"Focus ended\" with remaining/next hints. Where backend supports actions, provide callbacks such as Start Break, Next Focus, or Dismiss that invoke TimerService methods. Ensure integration is optional via user settings (enable/disable notifications). Add minimal DI/composition in app startup to pass tray and overlay instances into NotificationService.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -536,7 +536,7 @@
               "5.8"
             ],
             "details": "Unit: mock backend wrappers to assert order Native→Overlay→Tray→Log; simulate backend exceptions to ensure fallback triggers and backend resets. Platform selection: monkeypatch sys.platform/platform.system to hit Linux/Windows/macOS code paths. macOS osascript: mock subprocess calls. Windows toast: mock ToastNotifier. Linux notify2: mock init and Notification.show. Overlay: pytest-qt to instantiate widget when display available; separate tests ensure overlay controller disables in headless CI (no crash). Integration: simulate TimerService events and verify notifications sent and action callbacks invoked where supported. Ensure deterministic tests with timeouts <=2s.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T15:30:00.740Z",
+      "updated": "2025-08-14T15:34:38.832Z",
       "description": "Tasks for master context"
     }
   }
