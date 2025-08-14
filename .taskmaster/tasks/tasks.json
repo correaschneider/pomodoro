@@ -782,7 +782,7 @@
             "description": "Resolve user plugin directory and scan for candidate plugin folders.",
             "dependencies": [],
             "details": "- File: plugin_manager/manager.py (Discovery section)\n- Determine base dir: use platformdirs.user_data_dir(\"pomodoro_app\") or fallback to ~/.pomodoro/plugins\n- Final dir: <base>/plugins\n- Optional env override POMODORO_PLUGIN_DIR for tests/dev\n- Discover children where both plugin.toml and main.py exist\n- Return list of pathlib.Path entries with stable ordering (sorted)\n- Create directory if missing\n- Acceptance: Given a temp dir with sample plugin folders, discovery returns expected set",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1101,7 +1101,7 @@
     ],
     "metadata": {
       "created": "2025-08-11T11:02:04.411Z",
-      "updated": "2025-08-14T14:36:07.169Z",
+      "updated": "2025-08-14T14:38:36.822Z",
       "description": "Tasks for master context"
     }
   }
